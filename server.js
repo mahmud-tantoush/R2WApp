@@ -22,18 +22,16 @@ app.use('/api/actions', require('./routes/api/actions'))
 app.use('/api/graph', require('./routes/api/graph'))
 
 // initial connection check
-var query = "MATCH (n:Action) RETURN n LIMIT 1";
 var session = driver.session();
-session.run(query)
-  .then((result) => {
-    result.records.forEach(function(record) {
-        //console.log(record._fields[0].properties);
-    })
+session.run("MATCH (n) RETURN n LIMIT 1")
+  .then(() => {
+    session.close()
     console.log('connected to remote DB')
   })
   .catch((error) => {
+    session.close()
     console.log(error);
-  }).then ( () => { session.close()})
+  })
 
 function GetCase (c){
     //returns object model Case
@@ -62,17 +60,12 @@ function GetCase (c){
             throw e
         });
 }
-app.get('/', (req,res) => {
-    // Create Driver session
-    var session = driver.session();
 
+app.get('/', (req,res) => {
+    var session = driver.session();
     session
         .run('MATCH (n) RETURN n LIMIT 25')
         .then(result => {
-            if (_.isEmpty(result.records)){
-                //console.log('not right call')
-                res.send(null);    
-            }
             session.close()
             var arr = []
             result.records.forEach(function(record){

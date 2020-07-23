@@ -11,6 +11,7 @@ router.get('/getall', (req,res) => {
     session
     .run('MATCH n LIMIT 25')
     .then(results => {
+        session.close()
         var arr = []
         result.records.forEach(function(record){
             arr.push({
@@ -22,8 +23,9 @@ router.get('/getall', (req,res) => {
         res.send(arr);
     })
     .catch(e => {
+        session.close()
         console.log(e)})
-    .then( ()=> { session.close()})
+
 })
 
 router.use('*', (req, res) => {
