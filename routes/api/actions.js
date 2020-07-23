@@ -1,18 +1,18 @@
 const express = require('express');
 const router = express.Router()
-const neo4j = require('neo4j-driver');
+const driver = require('../../driver')
 
-//@route Get api/cases
-//@desc  Get all Cases
+//@route Get api/actions
+//@desc  Get all actions
 //access Public
-
 router.get('/getall', (req,res) => {
     // Create Driver session
-    var session = req.driver.session();
+    var session = driver.session();
 
     session
         .run('MATCH (n:Action) RETURN n LIMIT 25')
         .then(result => {
+            console.log('got here')
             var arr = []
             result.records.forEach(function(record){
                 arr.push({
@@ -23,15 +23,15 @@ router.get('/getall', (req,res) => {
             session.close()
             console.log(arr)
             res.send(arr);
-
         })
         .catch(e => {
             session.close()
             console.log(e)})
 })
 
+
 router.post('/addAction', (req,res) => {
-    var session = req.driver.session();
+    var session = driver.session();
     var newAction = req.body.type
 
     const qString = `create (n:Action {type: "${newAction}"}) return n`
@@ -40,10 +40,16 @@ router.post('/addAction', (req,res) => {
         .run(qString)
         .then(() => {
             console.log(`created Action type: ${newAction}`)
-            return session.close();
+             session.close();
         })
         .then(item => res.json(`Action created type: ${newAction}`))
         .catch(e => {console.log(e)})
+})
+
+router.use('*', (req, res) => {
+    console.log('Invalid api endpoint')
+    res.status(403)
+    res.send('invalid api endpoint')
 })
 
 module.exports = router

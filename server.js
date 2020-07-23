@@ -1,7 +1,13 @@
 const express = require('express');
 const cors = require('cors')
 const neo4j = require('neo4j-driver');
-//const neo4JDriver = require('./neo4j')
+require('dotenv').config()
+const config = require('./config');
+var _ = require('lodash');
+const driver = require('./driver')
+
+//data models
+var Case = require('./models/Case');
 
 const app = express();
 
@@ -11,103 +17,78 @@ app.use(express.json())
 //app.use(neo4JDriver);
 
 // use routes
-//app.use('/api/cases', require('./routes/api/cases'))
-//app.use('/api/actions', require('./routes/api/actions'))
-//app.use('/api/graph', require('./routes/api/graph'))
+app.use('/api/cases', require('./routes/api/cases'))
+app.use('/api/actions', require('./routes/api/actions'))
+app.use('/api/graph', require('./routes/api/graph'))
 
-// Create Driver
-
-var driver = neo4j.driver('bolt://52.87.235.130:32924', neo4j.auth.basic('neo4j', 'quarterdecks-woods-banks'));
-
-var query = 
-  "MATCH (n) \
-   RETURN n \
-   LIMIT $limit";
-
-var params = {"limit": 25};
-
+// initial connection check
+var query = "MATCH (n:Action) RETURN n LIMIT 1";
 var session = driver.session();
-
-session.run(query, params)
-  .then(function(result) {
+session.run(query)
+  .then((result) => {
     result.records.forEach(function(record) {
         //console.log(record._fields[0].properties);
     })
     console.log('connected to remote DB')
   })
-  .catch(function(error) {
+  .catch((error) => {
     console.log(error);
-  })
-  .then(() => {
-      session.close()
-  });
+  }).then ( () => { session.close()})
 
-//get all node data
-//http://localhost:5050/
-app.get('/', (req,res) => {
+function GetCase (c){
+    //returns object model Case
+    //console.log('got here')
     var session = driver.session();
+    const qString = `Match (n:Case {caseId: ${c}}) return n`
+
+    session
+        .run(qString)
+        .then((result) => {
+            //console.log(result.records[0]._fields[0])
+            session.close()
+
+            if (_.isEmpty(result.records)){
+                //console.log('not right call')
+                return null;    
+            }
+
+            var record = result.records[0]._fields[0].properties;
+            //console.log(record)
+            console.log(new Case(record.caseId, record.location, record.start_date))
+            return(new Case(3000, record.location, record.start_date))
+        })
+        .catch(e => {
+            session.close();
+            throw e
+        });
+}
+app.get('/', (req,res) => {
+    // Create Driver session
+    var session = driver.session();
+
     session
         .run('MATCH (n) RETURN n LIMIT 25')
         .then(result => {
+            if (_.isEmpty(result.records)){
+                //console.log('not right call')
+                res.send(null);    
+            }
+            session.close()
             var arr = []
             result.records.forEach(function(record){
                 arr.push({
                     id: record._fields[0].identity.low,
-                    properties: record._fields[0].properties
+                    type: record._fields[0].properties.type
                 })
             })
             //console.log(arr)
             res.send(arr);
         })
         .catch(e => {
+            session.close()
             console.log(e)})
-        .then( ()=> { session.close()})
-    //res.send('it works')
 })
 
-app.post('/api/addaction', (req,res) => {
-    var session = driver.session();
-    var newAction = req.body.type
-
-    //console.log(newAction)
-
-    const qString = `create (n:Action {type: "${newAction}"}) return n`
-    console.log(qString)
-    //res.send('accessed')
-    session
-        .run(qString)
-        .then(() => {
-            console.log(`created Action type: ${newAction}`)
-        })
-        .then(item => res.json(`Action created type: ${newAction}`))
-        .catch(e => {console.log(e)})
-        .then(()=>{session.close()})
-})
-
-const port = process.env.PORT || 5050
+const port = config.PORT
 
 app.listen(port, () => console.log(`server started on port ${port}`))
-
-/*
-const driver = neo4j.driver(
-    'bolt://localhost:7687', 
-    neo4j.auth.basic(
-        'neo4j', 
-        'R2W'
-        ))
-        
-const driver = neo4j.driver(
-    'bolt://52.87.235.130:32924', 
-    neo4j.auth.basic(
-        'neo4j', 
-        'quarterdecks-woods-banks'
-    )
-)
-
-const driver = neo4j.driver(
-    'bolt://hobby-ejfophcjhphmgbkeandgnhfl.dbs.graphenedb.com:24787', 
-    neo4j.auth.basic(
-        'mahmud', 
-        'b.eUXWi6RJ1XG0.MUPdzKcS3UvdXsJW'
-        )) 
-*/

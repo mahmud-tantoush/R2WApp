@@ -1,0 +1,23 @@
+/*
+const driver = neo4j.driver(
+    'bolt://localhost:7687', 
+    neo4j.auth.basic(
+        'neo4j', 
+        'R2W'
+        ))
+        
+const driver = neo4j.driver(
+    'bolt://52.87.235.130:32924', 
+    neo4j.auth.basic(
+        'neo4j', 
+        'quarterdecks-woods-banks'
+    )
+)
+
+const driver = neo4j.driver(
+    'bolt://hobby-ejfophcjhphmgbkeandgnhfl.dbs.graphenedb.com:24787', 
+    neo4j.auth.basic(
+        'mahmud', 
+        'b.eUXWi6RJ1XG0.MUPdzKcS3UvdXsJW'
+        )) 
+*/
