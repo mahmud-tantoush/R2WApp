@@ -19,8 +19,8 @@ router.get('/getall', (req,res) => {
                     properties: record._fields[0].properties
                 })
             })
-            console.log(arr)
-            res.send(arr);
+            //console.log(arr)
+            res.json(arr);
         })
         .catch(e => {
             session.close();

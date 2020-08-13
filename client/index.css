@@ -1,0 +1,215 @@
+body {
+  position: absolute;
+  margin: 0px;
+  width: 100%;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background-color: #fff;
+  max-height: 100%;
+}
+#submitCaseForm{
+  background-color: #ddd;
+  margin: 20px 15% 20px 15%;
+  padding: 10px 20px 20px 20px;
+  border: none;
+  border-radius: 3px;
+  box-sizing: border-box;
+  }
+
+.navBar {
+  list-style-type: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color:   rgb(148, 0, 0);
+}
+
+.caseManagement {
+  display: block;
+  list-style-type: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color:   rgb(148, 0, 0);
+}
+
+li {
+  float: left;
+}
+
+li a {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 13px 13px;
+  text-decoration: none;
+  float: left;
+}
+
+#actionElement a{
+  display: block;
+  color: black;
+  list-style-type: none;
+  text-align: center;
+  padding: 13px 13px;
+  text-decoration: none;
+  float: left;
+}
+#actionElement {
+  display: block;
+  width: 100%;
+  float: left;
+  padding-bottom: 10px;
+}
+
+#actionElement a:hover {
+  background-color: #555;
+}
+
+#actionList{
+  padding:0px;
+  color: black;
+  list-style-type: none;
+}
+
+.topnav-right{
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 13px 13px;
+  text-decoration: none;
+  float: right;
+}
+
+li a:hover {
+  background-color: #111;
+}
+
+html, body {
+  font: 16pt arial;
+  height:100%;
+}
+
+p {
+  display: block;
+  font: 10pt arial;
+  word-wrap: break-word;
+}
+
+#viz {
+  position: relative;
+  width: calc(75% - 2px);
+  right:0;
+  top:0px;
+  height: calc(100% - 51px); ;
+  float:left;
+}
+
+#caseManagement {
+  position: relative;
+  width: calc(75% - 2px);
+  right:0;
+  top:0px;
+  height: calc(100% - 51px); ;
+  float:left;
+}
+
+.side {
+  position: relative;
+  width: 25%;
+  height: calc(100% - 53px); ;
+  bottom: 0;
+  left: 0;
+  font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  background-color: #fff;
+  max-height: 100%;
+  overflow: hidden;
+  float:left;
+  border-style: solid;
+  border-color: #f0f0f0;
+  border-width: 1px;
+}
+
+.side fieldset {
+  display: none;
+  background: #ddd;
+  border: none;
+  padding: 10px;
+  margin: 0;
+  }
+
+input { 
+    display: block;
+    border: none;
+    width: 100%;
+    border-radius: 3px;
+    padding: 10px;
+    margin: 0;
+    box-sizing: border-box;
+    }
+
+textarea { 
+  min-height: 5em;
+  max-height: 25vh;
+  resize: none;
+  display: block;
+  border: none;
+  width: 100%;
+  border-radius: 3px;
+  padding: 10px;
+  margin: 0;
+  box-sizing: border-box;
+  }
+
+.side .listing {
+  overflow: auto;
+  max-height: 100%;
+  }
+
+.side .listing a {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  color: #404;
+  text-decoration: none;
+  }
+.side .listing > * {
+  display: block;
+  padding: 5px 10px;
+  margin: 0;
+  }
+
+.side .listing .sideBarListElements:hover {
+  background: #f0f0f0;
+  }
+
+
+label {
+  display: block;
+  padding: 10px 0px 5px 0px;
+}
+
+select { 
+  display: block;
+  border: none;
+  width: 100%;
+  border-radius: 3px;
+  padding: 10px;
+  margin: 0;
+  box-sizing: border-box;
+  }
+  
+button {
+  display: block;
+  border: none;
+  width: 100%;
+  border-radius: 3px;
+  padding: 10px;
+  margin: 0;
+  box-sizing: border-box;
+  margin-top: 25px;
+}
+button:hover {
+  background-color: #666;
+}

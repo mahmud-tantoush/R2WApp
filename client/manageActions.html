@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <title>R2W App</title>
+    <link rel="stylesheet" type="text/css" href="index.css">
+    </style>
+    <script src="https://cdn.neo4jlabs.com/neovis.js/v1.4.0/neovis.js"></script>
+    <script src="https://unpkg.com/neo4j-driver"></script>
+  </head>
+<body>
+<ul class='navBar'>
+  <div class='topnav'>
+    <li style="display: block;color: white;text-align: Left;padding: 13px 13px;text-decoration: none"><b>R2W</b></li>
+    <li><a class="active" href="index.html">Graphs</a></li>
+    <li><a class="active" href="createCase.html">Create case</a></li>
+    <li><a class="active" href="manageCases.html">Manage Cases</a></li>
+  </div>
+  <div class= 'topnav-right' style='margin:0;padding:0'>
+    <li><a class="active-right" href="login.html">Account</a></li>
+  </div>
+</ul>
+<div class="side">
+  <fieldset>
+    <input id="feature-filter" type="text" placeholder="Filter results by name"/>
+  </fieldset>
+  <div id="feature-listing" class="listing"></div>
+</div>
+<div id='caseManagement' >
+  <ul class='navBar' style='background-color: darkgrey;'>
+    <li><a class="active" href="manageCases.html" style=" font: 12pt arial">Cases</a></li>
+    <li><a class="active" href="manageActions.html" style=" font: 12pt arial">Actions</a></li>
+    <li><a class="active" href="#" style=" font: 12pt arial">Contacts</a></li>
+  </ul>
+  <div id='caseManagement-form' style="padding: 20px; background-color:#f3f3f3;">
+    <div id='error' style='color:red'></div>
+    <h2 id='titleElement'>Please select case</h2>
+    <ul id = 'actionList' style = 'display:none'>
+    </ul>
+    <button type ="submit">Update</button>
+  </div> 
+</div> 
+</body>
+<script type="text/javascript" src="./driver.js"></script>
+<script type="text/javascript" src="./manageActions.js"></script>
+</html>

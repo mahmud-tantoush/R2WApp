@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#000000" />
+        <title>R2W App</title>
+        <link rel="stylesheet" type="text/css" href="index.css">
+        </style>
+        <script src="https://cdn.neo4jlabs.com/neovis.js/v1.4.0/neovis.js"></script>
+        <script src="https://unpkg.com/neo4j-driver"></script>
+      </head>
+<body>
+    <ul class='navBar'>
+        <div class='topnav'>
+          <li style="display: block;color: white;text-align: Left;padding: 13px 13px;text-decoration: none"><b>R2W</b></li>
+          <li><a class="active" href="index.html">Graphs</a></li>
+          <li><a class="active" href="createCase.html">Create case</a></li>
+          <li><a class="active" href="manageCases.html">Manage Cases</a></li>
+        </div>
+        <div class= 'topnav-right' style='margin:0;padding:0'>
+          <li><a class="active-right" href="login.html">Account</a></li>
+        </div>
+      </ul>
+    <div id='submitCaseForm'>
+        <h2>Create case</h2>
+        <div id='error' style='color:red'></div>
+        <form id = 'createCaseForm'>
+            <label for="caseID">CaseID</label>
+            <input name = "caseID" id = "caseID" placeholder="Application case number" required>
+            <label for= "applicant">Applicant</label>
+            <input name = "applicant" id = "applicant" placeholder="Which houshold" required>
+            <label for= "location">Location</label>
+            <input name = "location" id = "location" placeholder="Location" required>
+            <label for="PHSv">Assigned PHS member</label>
+            <select name="PHSv" id="PHSv">
+                <option>Not yet assigned</option>
+                <option value="PHSv1">PHSv1</option>
+                <option value="PHSv2">PHSv2</option>
+            </select>
+            <label for= "notes">Notes</label>
+            <textarea name = "notes" id = "notes"></textarea>
+            <button type ="submit">Submit new case</button>
+        </form>
+    <div>
+</body>
+<script type="text/javascript" src="./driver.js"></script>
+<script type="text/javascript" src="./createCase.js"></script>
+</html>

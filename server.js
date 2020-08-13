@@ -6,14 +6,11 @@ const config = require('./config');
 var _ = require('lodash');
 const driver = require('./driver')
 
-//data models
-var Case = require('./models/Case');
-
 const app = express();
 
 //boady-parser middleware
 app.use(express.json())
-//app.use(cors())
+app.use(cors())
 //app.use(neo4JDriver);
 
 // use routes
@@ -21,17 +18,21 @@ app.use('/api/cases', require('./routes/api/cases'))
 app.use('/api/actions', require('./routes/api/actions'))
 app.use('/api/graph', require('./routes/api/graph'))
 
+//data models
+var Case = require('./models/Case');
+
 // initial connection check
 var session = driver.session();
 session.run("MATCH (n) RETURN n LIMIT 1")
   .then(() => {
-    session.close()
     console.log('connected to remote DB')
   })
   .catch((error) => {
-    session.close()
     console.log(error);
-  })
+  }).then (() => {
+    session.close()
+    //console.log('session closed')
+  }) 
 
 function GetCase (c){
     //returns object model Case
@@ -61,25 +62,29 @@ function GetCase (c){
         });
 }
 
+//GetCase(2002)
+
 app.get('/', (req,res) => {
     var session = driver.session();
     session
-        .run('MATCH (n) RETURN n LIMIT 25')
+        .run('MATCH (n) RETURN n LIMIT 10')
         .then(result => {
-            session.close()
             var arr = []
             result.records.forEach(function(record){
                 arr.push({
                     id: record._fields[0].identity.low,
-                    type: record._fields[0].properties.type
+                    properties: record._fields[0].properties
                 })
             })
             //console.log(arr)
             res.send(arr);
         })
         .catch(e => {
+            console.log(e)
+        })
+        .then ( () => {
             session.close()
-            console.log(e)})
+            }) 
 })
 
 const port = config.PORT
