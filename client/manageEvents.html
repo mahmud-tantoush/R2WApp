@@ -9,6 +9,7 @@
     </style>
     <script src="https://cdn.neo4jlabs.com/neovis.js/v1.4.0/neovis.js"></script>
     <script src="https://unpkg.com/neo4j-driver"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.20/lodash.min.js"></script>
   </head>
   <body>
   <ul class='navBar'>
@@ -17,7 +18,7 @@
       <li><a class="active" href="index.html">Graphs</a></li>
       <li><a class="active" href="createCase.html">Create case</a></li>
       <li><a class="active" href="manageCases.html">Manage Cases</a></li>
-      <li><a class="active" href="analysis.html">Analysis</a></li>
+      <li><a class="active" href="insights.html">Insights</a></li>
     </div>
     <div class= 'topnav-right' style='margin:0;padding:0'>
       <li><a class="active-right" href="login.html">Account</a></li>
@@ -55,8 +56,8 @@
         <select name="addEventType" id="addEventType">
           <option>Generic</option>
         </select>
-        <label for="DateEventCommenced">Date at the Begining of the event</label>
-        <input type="date" id="DateEventCommenced"></input>
+        <label for="DateEventStart">Date at the Begining of the event</label>
+        <input type="date" id="DateEventStart"></input>
         <label for="notes">Please enter any additional information</label>
         <textarea name = "notes" id = "notes"></textarea>
         <button type ="submit">Submit New Event</button>
@@ -70,10 +71,9 @@
         <span class="close">&times;</span>
         <h2 id='modalTitle'>Edit Event Details</h2>
         <form id = 'EditEventForm'>
-          <label for="PHSv">Select Event Type</label>
-          <select name="addEventType" id="addEventType">
-            <option>Generic</option>
-          </select>
+          <button id ="closeDeleteCaseButton" type = "submit" >Update</button>
+          <label for= "notes">Notes</label>
+          <textarea name = "notes" id = "notes"></textarea>
         </form>
       </div>
     </div>

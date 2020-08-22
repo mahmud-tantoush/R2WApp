@@ -120,22 +120,50 @@ caseManagementForm.addEventListener('submit', (e) => {
     })
     .catch(e => {
         console.log(qstring)
-        console/log('error with query')
+        console.log('error with query')
         session.close();
         throw e
     });
 })
 
-deleteCaseButton = document.getElementById('DeleteCaseButton')
-
+var deleteCaseButton = document.getElementById('DeleteCaseButton')
+var confimDeleteCaseButton = document.getElementById('confimDeleteCaseButton')
+var closeDeleteCaseButton = document.getElementById('closeDeleteCaseButton')
 var span = document.getElementsByClassName("close")[0];
 var modalTitle = document.getElementById('modalTitle');
 var confirmDeleteModal = document.getElementById("ConfirmDeleteModal");
 
 deleteCaseButton.onclick = function() {
     confirmDeleteModal.style.display = "block";
+    modalTitle.innerHTML = `<h2 id='modalTitle'>Delete confimation: Case ${currentCaseID}</h2>`
   }
 
 span.onclick = function() {
     confirmDeleteModal.style.display = "none"
   }  
+
+closeDeleteCaseButton.onclick = function (){
+    span.click()
+}
+
+confirmDeleteModal.onclick = function(){
+    var session = driver.session();
+    qstring = `MATCH (p:Case {caseID: '${currentCaseID}'}) 
+    CALL apoc.path.subgraphAll(p, {relationshipFilter: ">", minLevel: 0, maxLevel: 100 })
+    YIELD nodes
+    FOREACH (n IN nodes| detach delete n)`
+    session
+    .run(qstring)
+    .then(() => {
+        session.close();
+        console.log(qstring)
+        createCaseForm.innerHTML = `<h6><b>Case ${currentCaseID} deleted, Reloding</b></h6>`
+        document.location.reload(true)
+    })
+    .catch(e => {
+        console.log(qstring)
+        console/log('error with query')
+        session.close();
+        throw e
+    });
+}

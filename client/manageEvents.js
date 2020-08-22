@@ -33,6 +33,7 @@ var listingEl = document.getElementById('feature-listing');
 var filterEl = document.getElementById('feature-filter');
 var caseManagementForm = document.getElementById('caseManagement-form');
 var actionList = document.getElementById('actionList');
+var editEventForm = document.getElementById('EditEventForm');
 
 filterEl.addEventListener('keyup', function(e) {
     var value = normalize(e.target.value);
@@ -101,6 +102,38 @@ function renderListings(items) {
                                 actionListEl.appendChild(actionListEla)
                                 actionListEla.addEventListener('click',()=>{ //add event button functions
                                     EditEventModal.style.display = "block";
+
+                                    editEventForm.innerHTML = `
+                                    <button id ="closeDeleteCaseButton" type = "submit" >Update</button>`
+                                    //                                    <label for= "notes">Notes</label>
+                                    //<textarea name = "notes" id = "notes"></textarea>
+
+                                    currentEventProperties = record._fields[0].properties
+                                    currentEventNodeId = record._fields[0].identity.low
+
+                                    //add labales and input edits for event edits
+
+                                    labels = Object.keys(currentEventProperties)
+                                    if (labels.includes('DateLogged')) { labels.splice(labels.indexOf("DateLogged"),1)}//remove date logged
+                                    if (labels.includes('neo4jImportId')) {labels.splice(labels.indexOf("neo4jImportId"),1)}
+                                    if (labels.includes('Label')) {labels.splice(labels.indexOf("Label"),1)}
+
+                                    //labels = _.remove(labels,["DateLogged","neo4jImportId","Label"])
+
+                                    labels.forEach(element => {
+                                        var a = document.createElement('label')   
+                                        //console.log(element)
+                                        a.textContent = element
+
+                                        var b = document.createElement('input')
+                                        b.name = element
+                                        b.id = element
+                                        b.value = currentEventProperties[element]
+                                        //console.log(typeof(currentEventProperties[element]))
+
+                                       editEventForm.prepend(b)
+                                       editEventForm.prepend(a)
+                                    });
                                 })
 
                                 currentEventsList.push(record._fields[0])
@@ -112,14 +145,12 @@ function renderListings(items) {
                                 //console.log(actionListEl)
                                 actionList.appendChild(actionListEl)
                                 actionList.appendChild(actionListElProp)
-
                             })
                         })
                         .catch(e => {
                             session.close();
                             throw e
                         });
-
                     //reveal list
                     document.getElementById('actionList').style = 'display:block'
 
@@ -137,17 +168,21 @@ function renderListings(items) {
 var eventModal = document.getElementById("EventModal");
 var editEventModal = document.getElementById("EditEventModal");
 var addEventBtn = document.getElementById("addEvent");
-var span = document.getElementsByClassName("close")[0];
+var span0 = document.getElementsByClassName("close")[0];
+var span1 = document.getElementsByClassName("close")[1];
+
 var addEventForm = document.getElementById('addEventForm');
-var modalTitle = document.getElementById('modalTitle');
 
 addEventBtn.onclick = function() {
     eventModal.style.display = "block";
   }
 
-span.onclick = function() {
+span0.onclick = function() {
     eventModal.style.display = "none"
   }  
+span1.onclick = function() {
+    editEventModal.style.display = "none"
+} 
 
 var session = driver.session();
 session
@@ -169,11 +204,11 @@ session
     throw e
 });
 
-
 addEventForm.addEventListener('submit', (e) => {
+
     var input1 = document.getElementById('addEventType')
     var input2 = document.getElementById('notes')
-    var input3 = document.getElementById('DateEventCommenced')
+    var input3 = document.getElementById('DateEventStart')
     var input4 = new Date()
 
     //add input checks here
@@ -225,4 +260,43 @@ addEventForm.addEventListener('submit', (e) => {
         //document.getElementById(`caseID: ${currentCaseID}`).click()
     }
 })
+
+editEventForm.addEventListener('submit', (e) => {
+    n = {}
+
+    st = 'set  '
+
+    labels.forEach( label => {
+        l = document.getElementById(label)
+        st = st + `n.${label} = '${l.value}',`
+        //console.log(l.value)
+        //n[label] = l.value
+    })
+
+    st = st.slice(0, -1)//remove last comma
+
+    qstring = `MATCH (n) where ID(n) = ${currentEventNodeId}  ` + st
+
+    //add input checks here
+    e.preventDefault();      
+    eventModal.style.display = "none";  
+
+    //run the create command in db
+    
+    var session = driver.session();
+    session
+    .run(qstring)
+    .then(() => {
+        console.log(qstring)
+    })
+    .catch(e => {
+        console.log(qstring)
+        console.log('error with query')
+        session.close();
+        throw e
+    });
+
+    document.location.reload(true)
+})
+
 

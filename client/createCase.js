@@ -37,8 +37,9 @@ createCaseForm.addEventListener('submit', (e) => {
         
         var newCase = `{caseID: '${caseID.value}', \
         applicant: '${applicant.value}',\
-        location: '${loc.value}',  \
+        Location: '${loc.value}',  \
         phsVolunteer: '${phsVolunteer.value}', \
+        dateLogged : '${new Date()}', \
         notes : '${notes.value}'}`
 
         console.log(newCase) 
