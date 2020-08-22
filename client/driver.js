@@ -1,4 +1,11 @@
+var dbLoc = 'bolt://localhost:7687'
+var dbUsername = 'neo4j'
+var dbPassword = 'Demo_Data_Rev1'
+
+
 var driver = neo4j.driver(
-    'bolt://localhost:7687',
-    neo4j.auth.basic('neo4j', 'Demo_Data_Rev1')
-  )
+    dbLoc,
+    neo4j.auth.basic(dbUsername, dbPassword)
+)
+
+

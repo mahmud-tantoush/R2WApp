@@ -25,13 +25,12 @@ session
         throw e
     });
 
-
 function draw(query) {  //takes in a query
     var config = {
         container_id: "viz",
-        server_url: "bolt://localhost:7687",
-        server_user: "neo4j",
-        server_password: "Demo_Data_Rev1",
+        server_url: dbLoc,
+        server_user: dbUsername,
+        server_password: dbPassword,
         labels: { 
             'Case': {
                 'caption': 'Location',
@@ -118,35 +117,3 @@ RETURN nodes, relationships, p`
 function normalize(string) {
     return string.trim().toLowerCase();
     }
-
-/*
-//var initList = [{"id": 0,"properties": {"location": '',"caseID": {"low": null,"high": 0}}}]
-
-//renderListings(initList) //init side bar command, then call wth data from db in session
-
-function getData(url){
-    var d
-    fetch('http://localhost:5050/api/cases/getAll')
-        .then(res => res.json())
-        .then(data => d = data)
-        .then(() => {console.log(d)})
-}
-}
-    console.log(listingEl)
-
-     function renderList(items){
-      
-
-      var empty = document.createElement('p');
-      listingEl.innerHTML = '';
-      if (items.length) {
-        items.forEach(function(item) {
-          var i = document.createElement('a');
-          i.textContent = toString(item)
-          listingEl.appendChild(i);
-        })
-      };
-    };
-    //renderList(list)
-
-    */
