@@ -17,6 +17,7 @@
           <li><a class="active" href="index.html">Graphs</a></li>
           <li><a class="active" href="createCase.html">Create case</a></li>
           <li><a class="active" href="manageCases.html">Manage Cases</a></li>
+          <li><a class="active" href="analysis.html">Analysis</a></li>
         </div>
         <div class= 'topnav-right' style='margin:0;padding:0'>
           <li><a class="active-right" href="login.html">Account</a></li>
@@ -33,11 +34,7 @@
             <label for= "location">Location</label>
             <input name = "location" id = "location" placeholder="Location" required>
             <label for="PHSv">Assigned PHS member</label>
-            <select name="PHSv" id="PHSv">
-                <option>Not yet assigned</option>
-                <option value="PHSv1">PHSv1</option>
-                <option value="PHSv2">PHSv2</option>
-            </select>
+            <input name = "PHSv" id = "PHSv" required>
             <label for= "notes">Notes</label>
             <textarea name = "notes" id = "notes"></textarea>
             <button type ="submit">Submit new case</button>

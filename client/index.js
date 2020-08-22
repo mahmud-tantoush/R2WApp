@@ -31,27 +31,13 @@ function draw(query) {  //takes in a query
         container_id: "viz",
         server_url: "bolt://localhost:7687",
         server_user: "neo4j",
-        server_password: "R2W",
-        labels: {
+        server_password: "Demo_Data_Rev1",
+        labels: { 
             'Case': {
-                'caption': 'caseID',
-                "size": 5.0 ,
-                'color':'black'
-            },
-            'Action': {
-                'caption': true,
-                "size": 5.0,
-                'colour': '#ffffff'
-            },
-            'Contact': {
-                'caption': 'type',
-                "size": 5.0,
-                'colour': '#ffffff'
-            },
-            'PHSvolunteer': {
-                'caption': 'type',
-                "size": 5.0,
-                'colour': '#ffffff'
+                'caption': 'Location',
+            } ,
+            'Event': {
+                'caption': 'Label',
             }
         },
         relationships: {
@@ -70,13 +56,14 @@ function draw(query) {  //takes in a query
 var listingEl = document.getElementById('feature-listing');
 var filterEl = document.getElementById('feature-filter');
 
+
 filterEl.addEventListener('keyup', function(e) {
     var value = normalize(e.target.value);
     //console.log(value)
 
     filtered = DBlist.filter(function(item) {
         //console.log(a)
-        potentialCaseID = item.properties.caseID.toString();
+        potentialCaseID = item.properties.caseID;
         //  var add other searc parametes
         console.log(potentialCaseID.indexOf(value) > -1)
         return potentialCaseID.indexOf(value) > -1 // add || for other parms here
@@ -86,6 +73,8 @@ filterEl.addEventListener('keyup', function(e) {
     renderListings(filtered)
     });
 
+
+
 function renderListings(items) {
     listingEl.innerHTML = ''; //reset html
 
@@ -93,34 +82,30 @@ function renderListings(items) {
     var getAll = document.createElement('a') 
     getAll.addEventListener('click', function() {
         console.log('clicked')
-        draw('MATCH (n), (a)-[r]-(b) RETURN a, r, b, n')
+        draw('MATCH (n:Case) RETURN n') //
     });
     getAll.className = 'sideBarListElements'
     getAll.id = 'caseID'
     getAll.style = 'background-color: rgb(240, 240, 240);color:black'
-    getAll.textContent = 'GET ALL GRAPHS'
+    getAll.textContent = 'View All Cases'
     listingEl.appendChild(getAll);
 
     console.log(items)
         if (items.length) {
             items.forEach(function(item) {
-                var prop = item.properties;
-                //console.log(prop)
+                //console.log(item.properties.caseID.low)
                 var i = document.createElement('a');
-                //console.log(i)
                 i.className = 'sideBarListElements'
-                i.textContent = prop.caseID
+                i.textContent = item.properties.caseID
                 i.id = 'caseID'
                 i.addEventListener('click', function() {
                     console.log('clicked')
-                    draw(
-                    `MATCH (p:Case {caseID: ${prop.caseID}})
-                    CALL apoc.path.subgraphAll(p, {
-                        minLevel: 0,
-                        maxLevel: 10
-                    })
-                    YIELD nodes, relationships
-                    RETURN nodes, relationships, p`)
+                    QString = `MATCH (p:Case {caseID: "${item.properties.caseID}"}) 
+CALL apoc.path.subgraphAll(p, {relationshipFilter: ">", minLevel: 0, maxLevel: 100 })
+YIELD nodes, relationships
+RETURN nodes, relationships, p`
+                    draw(QString)
+                    console.log(QString)
                 });
 
                 listingEl.appendChild(i);

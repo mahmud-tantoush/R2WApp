@@ -10,13 +10,14 @@
     <script src="https://cdn.neo4jlabs.com/neovis.js/v1.4.0/neovis.js"></script>
     <script src="https://unpkg.com/neo4j-driver"></script>
   </head>
-<body onload="draw('MATCH (n), (a)-[r]-(b) RETURN a, r, b, n')">
+<body onload="draw('MATCH (n:Case) RETURN n')">
   <ul class='navBar'>
     <div class='topnav'>
       <li style="display: block;color: white;text-align: Left;padding: 13px 13px;text-decoration: none"><b>R2W</b></li>
       <li><a class="active" href="index.html">Graphs</a></li>
       <li><a class="active" href="createCase.html">Create case</a></li>
       <li><a class="active" href="manageCases.html">Manage Cases</a></li>
+      <li><a class="active" href="analysis.html">Analysis</a></li>
     </div>
     <div class= 'topnav-right' style='margin:0;padding:0'>
       <li><a class="active-right" href="login.html">Account</a></li>

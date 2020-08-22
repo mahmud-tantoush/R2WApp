@@ -35,7 +35,7 @@ createCaseForm.addEventListener('submit', (e) => {
         
         errorElement.innerText = ''
         
-        var newCase = `{caseID: ${caseID.value}, \
+        var newCase = `{caseID: '${caseID.value}', \
         applicant: '${applicant.value}',\
         location: '${loc.value}',  \
         phsVolunteer: '${phsVolunteer.value}', \

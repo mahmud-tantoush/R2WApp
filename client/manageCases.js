@@ -33,14 +33,13 @@ var listingEl = document.getElementById('feature-listing');
 var filterEl = document.getElementById('feature-filter');
 var caseManagementForm = document.getElementById('caseManagement-form');
 
-
 filterEl.addEventListener('keyup', function(e) {
     var value = normalize(e.target.value);
     //console.log(value)
 
     filtered = DBlist.filter(function(item) {
         //console.log(a)
-        potentialCaseID = item.properties.caseID.toString();
+        potentialCaseID = item.properties.caseID;
         //  var add other searc parametes
         console.log(potentialCaseID.indexOf(value) > -1)
         return potentialCaseID.indexOf(value) > -1 // add || for other parms here
@@ -49,7 +48,7 @@ filterEl.addEventListener('keyup', function(e) {
     //console.log(filtered)
     renderListings(filtered)
     });
-
+    
 function renderListings(items) {
     listingEl.innerHTML = ''; //reset html
 
@@ -72,16 +71,18 @@ function renderListings(items) {
                     document.getElementById('titleElement').innerText = `Case: ${prop.caseID}`
                     
                     var elCaseID = document.getElementById('caseIDi')
-                    elCaseID.value = item.properties.caseID.low
+                    elCaseID.value = item.properties.caseID
                     currentCaseID = elCaseID.value
                     var elApplicant = document.getElementById('applicant')
                     elApplicant.value = item.properties.applicant
                     var elLocation = document.getElementById('location')
-                    elLocation.value = item.properties.location
+                    elLocation.value = item.properties.Location
                     var elPHSv = document.getElementById('PHSv')
                     elPHSv.value = item.properties.phsVolunteer
                     var elNotes = document.getElementById('notes')
                     elNotes.value = item.properties.notes
+
+                    console.log(item.properties)
                 });
                 listingEl.appendChild(i);
             // Show the filter input
@@ -91,43 +92,50 @@ function renderListings(items) {
 }
 
 caseManagementForm.addEventListener('submit', (e) => {
-    var caseID = document.getElementById('caseIDi')
+    var caseIDi = document.getElementById('caseIDi')
     var applicant = document.getElementById('applicant')
     var loc = document.getElementById('location')
     var phsVolunteer = document.getElementById('PHSv')
     var notes = document.getElementById('notes')
-    var errorElement = document.getElementById('error')
-
-    //add input checks here
 
     e.preventDefault();
-    var eMessages = []
+    
+    var n = `{caseID: '${caseIDi.value}', \
+    applicant: '${applicant.value}',\
+    Location: '${loc.value}',  \
+    phsVolunteer: '${phsVolunteer.value}', \
+    notes : '${notes.value}'}`
+    //console.log(n) 
 
-    if(eMessages.length == 0){  //data format is good
-        
-        errorElement.innerText = ''
-        
-        var n = `{caseID: ${caseID.value}, \
-        applicant: '${applicant.value}',\
-        location: '${loc.value}',  \
-        phsVolunteer: '${phsVolunteer.value}', \
-        notes : '${notes.value}'}`
-
-        console.log(n) 
-        // run the create command in db
-        var session = driver.session();
-        session
-        .run(`MATCH (n:Case {caseID: ${currentCaseID}})\
-            set n = ${n}`)
-        .then(() => {
-            console.log(`MATCH (n:Case {caseID: ${caseID.value}}) set n = ${n}`)
-            createCaseForm.innerHTML = "<h6><b>Case Updated, page is reloading</b></h6>"
-            document.location.reload(true)
-        })
-        .catch(e => {
-            console/log('error with query')
-            session.close();
-            throw e
-        });
-    }
+    // run the create command in db
+    var session = driver.session();
+    qstring = `MATCH (n:Case {caseID: '${currentCaseID}'})\
+    set n = ${n}`
+    session
+    .run(qstring)
+    .then(() => {
+        console.log(qstring)
+        createCaseForm.innerHTML = "<h6><b>Case Updated, page is reloading</b></h6>"
+        document.location.reload(true)
+    })
+    .catch(e => {
+        console.log(qstring)
+        console/log('error with query')
+        session.close();
+        throw e
+    });
 })
+
+deleteCaseButton = document.getElementById('DeleteCaseButton')
+
+var span = document.getElementsByClassName("close")[0];
+var modalTitle = document.getElementById('modalTitle');
+var confirmDeleteModal = document.getElementById("ConfirmDeleteModal");
+
+deleteCaseButton.onclick = function() {
+    confirmDeleteModal.style.display = "block";
+  }
+
+span.onclick = function() {
+    confirmDeleteModal.style.display = "none"
+  }  
