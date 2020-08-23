@@ -55,8 +55,7 @@ function renderListings(items) {
     // add search all item
     var getAll = document.createElement('a') 
     getAll.addEventListener('click', function() {
-
-        document.getElementById('titleElement').innerText = 'Overview of cases'
+        caseManagementForm.innerHTML = `<h2 id='titleElement'>Overview of cases</h2>`
     });
 
     getAll.className = 'sideBarListElements'
