@@ -6,7 +6,7 @@ var session = driver.session();
 
 //get properties for each case in db     var=DBlist
 session
-    .run(`Match (n:Case) return n`)
+    .run(`Match (n:Case) return n.caseID`)
     .then((result) => {
         //console.log(result.records[0]._fields[0])
         session.close()
@@ -80,7 +80,7 @@ function renderListings(items) {
     // add search all item
     var getAll = document.createElement('a') 
     getAll.addEventListener('click', function() {
-        console.log('clicked')
+        //console.log('clicked')
         draw('MATCH (n:Case) RETURN n') //
     });
     getAll.className = 'sideBarListElements'
@@ -89,22 +89,22 @@ function renderListings(items) {
     getAll.textContent = 'View All Cases'
     listingEl.appendChild(getAll);
 
-    console.log(items)
+    //console.log(items)
         if (items.length) {
             items.forEach(function(item) {
                 //console.log(item.properties.caseID.low)
                 var i = document.createElement('a');
                 i.className = 'sideBarListElements'
-                i.textContent = item.properties.caseID
+                i.textContent = item
                 i.id = 'caseID'
                 i.addEventListener('click', function() {
-                    console.log('clicked')
-                    QString = `MATCH (p:Case {caseID: "${item.properties.caseID}"}) 
+                    //console.log('clicked')
+                    QString = `MATCH (p:Case {caseID: "${item}"}) 
 CALL apoc.path.subgraphAll(p, {relationshipFilter: ">", minLevel: 0, maxLevel: 100 })
 YIELD nodes, relationships
 RETURN nodes, relationships, p`
                     draw(QString)
-                    console.log(QString)
+                    //console.log(QString)
                 });
 
                 listingEl.appendChild(i);

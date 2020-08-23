@@ -115,10 +115,12 @@ function renderListings(items) {
 
                                     labels = Object.keys(currentEventProperties)
                                     if (labels.includes('DateLogged')) { labels.splice(labels.indexOf("DateLogged"),1)}//remove date logged
+                                    if (labels.includes('dateLogged')) { labels.splice(labels.indexOf("dateLogged"),1)}//remove date logged
                                     if (labels.includes('neo4jImportId')) {labels.splice(labels.indexOf("neo4jImportId"),1)}
                                     if (labels.includes('Label')) {labels.splice(labels.indexOf("Label"),1)}
+                                    if (labels.includes("Notes")) {labels.splice(labels.indexOf("Notes"),1)}
 
-                                    //labels = _.remove(labels,["DateLogged","neo4jImportId","Label"])
+                                    labels.unshift("Notes")            
 
                                     labels.forEach(element => {
                                         var a = document.createElement('label')   
@@ -207,8 +209,9 @@ session
 addEventForm.addEventListener('submit', (e) => {
 
     var input1 = document.getElementById('addEventType')
-    var input2 = document.getElementById('notes')
     var input3 = document.getElementById('DateEventStart')
+    var input5 = document.getElementById('Completed')
+    var input2 = document.getElementById('notes')
     var input4 = new Date()
 
     //add input checks here
@@ -217,9 +220,10 @@ addEventForm.addEventListener('submit', (e) => {
         
     var n = 
     `{Label: '${input1.value}', \
+    eventStartDate: '${input3.value}',\
+    Completed: '${input5.value}',\
     Notes : '${input2.value}',\
-    DateEventCommenced: '${input3.value}',\
-    DateLogged: '${input4.toString()}'}\ `
+    dateLogged: '${input4.toString()}'}\ `
 
     console.log(n) 
     // run the create command in db
@@ -228,7 +232,7 @@ addEventForm.addEventListener('submit', (e) => {
     if (currentEventsList.length==0){
         qstring = `
         MATCH (a:Case {caseID: '${currentCaseID}'})\
-        CREATE (a) -[r:NewAction]-> (b:Event ${n})`
+        CREATE (a) -[r:NewAction {Expected_Duration : 5}]-> (b:Event ${n})`
         session
         .run(qstring)
         .then(() => {
@@ -245,7 +249,7 @@ addEventForm.addEventListener('submit', (e) => {
         var latestEvent = currentEventsList[currentEventsList.length - 1]
         qstring = `
         MATCH (a) where ID(a) = ${latestEvent.identity.low}\
-        CREATE (a) -[r:NewAction]-> (b:Event ${n})`
+        CREATE (a) -[r:NewAction {Expected_Duration : 5}]-> (b:Event ${n})`
         session
         .run(qstring)
         .then(() => {

@@ -10,7 +10,7 @@ function normalize(string) {
 
 //get properties for each case in db     var=DBlist
 session
-    .run(`Match (n:Case) return n`)
+    .run(`Match (n:Case) return n.caseID`)
     .then((result) => {
         //console.log(result.records[0]._fields[0])
         session.close()
@@ -52,37 +52,55 @@ filterEl.addEventListener('keyup', function(e) {
 function renderListings(items) {
     listingEl.innerHTML = ''; //reset html
 
-    console.log(items)
+    //console.log(items)
         if (items.length) {
             items.forEach(function(item) {
-                var prop = item.properties;
                 //console.log(prop)
                 var i = document.createElement('a');
                 //console.log(i)
                 i.className = 'sideBarListElements'
-                i.textContent = prop.caseID
+                i.textContent = item
                 i.id = 'caseID'
                 i.addEventListener('click', function() {
 
-                    //reveal form
-                    document.getElementById('createCaseForm').style = 'display:block'
+                    currentCaseID = item
 
-                    // change CASEID title
-                    document.getElementById('titleElement').innerText = `Case: ${prop.caseID}`
-                    
-                    var elCaseID = document.getElementById('caseIDi')
-                    elCaseID.value = item.properties.caseID
-                    currentCaseID = elCaseID.value
-                    var elApplicant = document.getElementById('applicant')
-                    elApplicant.value = item.properties.applicant
-                    var elLocation = document.getElementById('location')
-                    elLocation.value = item.properties.Location
-                    var elPHSv = document.getElementById('PHSv')
-                    elPHSv.value = item.properties.phsVolunteer
-                    var elNotes = document.getElementById('notes')
-                    elNotes.value = item.properties.notes
+                    var session = driver.session();
 
-                    console.log(item.properties)
+                    //get properties for each case in db     var=DBlist
+                    session
+                        .run(`Match (n:Case {caseID: '${item}'}) return n`)
+                        .then((result) => {
+                            //console.log(result.records[0]._fields[0])
+                            session.close()
+                            var currCase = result.records[0]._fields[0]
+                            //console.log(currCase)
+
+                                                //reveal form
+                            document.getElementById('createCaseForm').style = 'display:block'
+
+                            // change CASEID title
+                            document.getElementById('titleElement').innerText = `Case: ${item}`
+                            
+                            var elCaseID = document.getElementById('caseIDi')
+                            elCaseID.value = item
+                            currentCaseID = elCaseID.value
+                            var elApplicant = document.getElementById('applicant')
+                            elApplicant.value = currCase.properties.applicant
+                            var elLocation = document.getElementById('location')
+                            elLocation.value = currCase.properties.Location
+                            var elPHSv = document.getElementById('PHSv')
+                            elPHSv.value = currCase.properties.phsVolunteer
+                            var elNotes = document.getElementById('notes')
+                            elNotes.value = currCase.properties.notes
+
+                        })
+                        .catch(e => {
+                            session.close();
+                            throw e
+                        });
+
+
                 });
                 listingEl.appendChild(i);
             // Show the filter input
@@ -120,7 +138,7 @@ caseManagementForm.addEventListener('submit', (e) => {
     })
     .catch(e => {
         console.log(qstring)
-        console.log('error with query')
+        console/log('error with query')
         session.close();
         throw e
     });
@@ -162,7 +180,7 @@ confirmDeleteModal.onclick = function(){
     })
     .catch(e => {
         console.log(qstring)
-        console/log('error with query')
+        console.log('error with query')
         session.close();
         throw e
     });
