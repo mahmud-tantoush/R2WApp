@@ -6,7 +6,7 @@ var session = driver.session();
 
 function normalize(string) {
     return string.trim().toLowerCase();
-    }
+}
 
 //get properties for each case in db     var=DBlist
 session
@@ -15,12 +15,12 @@ session
         //console.log(result.records[0]._fields[0])
         session.close()
         DBlist = []
-        result.records.forEach(function(record){
+        result.records.forEach(function (record) {
             //console.log(record._fields[0])
             DBlist.push(record._fields[0])
         })
     })
-    .then(() => {   
+    .then(() => {
         //console.log(DBlist)
         renderListings(DBlist)
     })
@@ -33,27 +33,13 @@ var listingEl = document.getElementById('feature-listing');
 var filterEl = document.getElementById('feature-filter');
 var caseManagementForm = document.getElementById('caseManagement-form');
 
-filterEl.addEventListener('keyup', function(e) {
-    var value = normalize(e.target.value);
-    //console.log(value)
 
-    filtered = DBlist.filter(function(item) {
-        potentialCaseID = item.properties.caseID;
-        //  var add other searc parametes
-        console.log(potentialCaseID.indexOf(value) > -1)
-        return potentialCaseID.indexOf(value) > -1 // add || for other parms here
-        });
-
-    //console.log(filtered)
-    renderListings(filtered)
-    });
-    
 function renderListings(items) {
     listingEl.innerHTML = ''; //reset html
 
     // add search all item
-    var getAll = document.createElement('a') 
-    getAll.addEventListener('click', function() {
+    var getAll = document.createElement('a')
+    getAll.addEventListener('click', function () {
         caseManagementForm.innerHTML = `<h2 id='titleElement'>Overview of cases</h2>`
         document.getElementById('titleElement').innerText = `All Overdue Items`
 
@@ -93,31 +79,34 @@ function renderListings(items) {
                 session.close();
                 throw e
             });
-    
     });
 
-    getAll.className = 'sideBarListElements'
-    getAll.id = 'caseID'
-    getAll.style = 'background-color: rgb(240, 240, 240);color:black'
-    getAll.textContent = 'View All Cases'
-    listingEl.appendChild(getAll);
 
-    //console.log(items)
-        if (items.length) {
-            items.forEach(function(item) {
-                // get current case ID
 
-                var i = document.createElement('a');
-                //console.log(i)
-                i.className = 'sideBarListElements'
-                i.textContent = item.properties.caseID
-                i.id = 'caseID'
-                i.addEventListener('click', function() {
+getAll.className = 'sideBarListElements'
+getAll.id = 'caseID'
+getAll.style = 'background-color: rgb(240, 240, 240);color:black'
+getAll.textContent = 'View All Cases'
+listingEl.appendChild(getAll);
 
-                    currentCaseID = item.properties.caseID
-                    document.getElementById('titleElement').innerText = `Case: ${currentCaseID}`
+//console.log(items)
+if (items.length) {
+    items.forEach(function (item) {
+        // get current case ID
 
-                    var queryString = `Match (p:Case {caseID: "${currentCaseID}"})
+        var prop = item.properties;
+        //console.log(prop)
+        var i = document.createElement('a');
+        //console.log(i)
+        i.className = 'sideBarListElements'
+        i.textContent = prop.caseID
+        i.id = 'caseID'
+        i.addEventListener('click', function () {
+
+            currentCaseID = prop.caseID
+            document.getElementById('titleElement').innerText = `Case: ${currentCaseID}`
+
+            var queryString = `Match (p:Case {caseID: "${currentCaseID}"})
                     CALL apoc.path.subgraphAll(p, {
                         relationshipFilter: ">",
                         minLevel: 1,
@@ -128,42 +117,45 @@ function renderListings(items) {
                     Where r in relationships and r.Expected_Duration< duration.inDays(date(a.eventStartDate),date(b.eventStartDate)).days 
                     return r as Action ,r.Expected_Duration as Expected, duration.inDays(date(a.eventStartDate),
                     date(b.eventStartDate)).days as Taken , a.Label as Node`
-            
-                    var session = driver.session();
-                    session
-                        .run(queryString)
-                        .then((result) => {
-                            console.log(queryString)
-                            session.close()
-                            //console.log(result.records)
 
-                            caseManagementForm.innerHTML = `<h2 id='titleElement'>Case: ${currentCaseID}</h2>`
+            var session = driver.session();
+            session
+                .run(queryString)
+                .then((result) => {
+                    //console.log(result.records[0]._fields[0])
+                    session.close()
+                    //console.log(result.records)
 
-                            result.records.forEach(function(record){
+                    caseManagementForm.innerHTML = `<h2 id='titleElement'>Case: ${currentCaseID}</h2>`
 
-                                //DBlist.push(record._fields[0])
-                                caseEventsInfo = document.createElement('p')
-                                caseEventsInfo.id = `caseEventsInfo`
+                    result.records.forEach(function (record) {
 
-                                caseEventsInfo.innerHTML = `Event : ${record._fields[3]} <br>
-                                                            Expected days    :   ${record._fields[1]}  <br>
-                                                            Taken days   :   ${record._fields[2]}`
+                        //DBlist.push(record._fields[0])
+                        caseEventsInfo = document.createElement('p')
+                        caseEventsInfo.id = `caseEventsInfo`
+                        var timeOverdue = record._fields[2] - record._fields[1]
+                        caseEventsInfo.innerHTML = `Event : ${record._fields[3]} <br>
+                                                    Expected days    :   ${record._fields[1]}  <br>
+                                                    Taken days   :   ${record._fields[2]}<br>
+                                                    Days overdue   :   ${timeOverdue}`
 
-                                caseManagementForm.appendChild(caseEventsInfo)
+                        caseManagementForm.appendChild(caseEventsInfo)
 
-                            })
-                        })
-                        .catch(e => {
-                            session.close();
-                            throw e
-                        });
+                    })
+                })
+                .catch(e => {
+                    session.close();
+                    throw e
                 });
-                listingEl.appendChild(i);
-            // Show the filter input
-            filterEl.parentNode.style.display = 'block';
-            })
-        }
+        });
+        listingEl.appendChild(i);
+        // Show the filter input
+        filterEl.parentNode.style.display = 'block';
+    })
+
 }
+
+};
 
 function compare(a, b) {
     const bandA = a[2]-a[1];

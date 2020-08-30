@@ -10,7 +10,7 @@ function normalize(string) {
 
 //get properties for each case in db     var=DBlist
 session
-    .run(`Match (n:Case) return n.caseID`)
+    .run(`Match (n:Case) return n`)
     .then((result) => {
         //console.log(result.records[0]._fields[0])
         session.close()
@@ -59,19 +59,22 @@ function renderListings(items) {
                 var i = document.createElement('a');
                 //console.log(i)
                 i.className = 'sideBarListElements'
-                i.textContent = item
+                i.textContent = item.properties.caseID
                 i.id = 'caseID'
                 i.addEventListener('click', function() {
 
-                    currentCaseID = item
+                    currentCaseID = item.properties.caseID
 
                     var session = driver.session();
 
+                    query = `Match (n:Case {caseID: '${item.properties.caseID}'}) return n`
+
                     //get properties for each case in db     var=DBlist
                     session
-                        .run(`Match (n:Case {caseID: '${item}'}) return n`)
+                        .run(query)
                         .then((result) => {
-                            //console.log(result.records[0]._fields[0])
+                            console.log(query)
+                            console.log(result.records[0]._fields[0])
                             session.close()
                             var currCase = result.records[0]._fields[0]
                             //console.log(currCase)
@@ -80,10 +83,10 @@ function renderListings(items) {
                             document.getElementById('createCaseForm').style = 'display:block'
 
                             // change CASEID title
-                            document.getElementById('titleElement').innerText = `Case: ${item}`
+                            document.getElementById('titleElement').innerText = `Case: ${item.properties.caseID}`
                             
                             var elCaseID = document.getElementById('caseIDi')
-                            elCaseID.value = item
+                            elCaseID.value = item.properties.caseID
                             currentCaseID = elCaseID.value
                             var elApplicant = document.getElementById('applicant')
                             elApplicant.value = currCase.properties.applicant
@@ -164,7 +167,7 @@ closeDeleteCaseButton.onclick = function (){
     span.click()
 }
 
-confirmDeleteModal.onclick = function(){
+confimDeleteCaseButton.onclick = function(){
     var session = driver.session();
     qstring = `MATCH (p:Case {caseID: '${currentCaseID}'}) 
     CALL apoc.path.subgraphAll(p, {relationshipFilter: ">", minLevel: 0, maxLevel: 100 })

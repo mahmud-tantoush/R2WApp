@@ -177,7 +177,27 @@ var addEventForm = document.getElementById('addEventForm');
 
 addEventBtn.onclick = function() {
     eventModal.style.display = "block";
-  }
+
+    var session = driver.session();
+    session
+    .run(`Match (n:EventType) return n`)
+    .then((result) => { //result equals all the types of events
+        //console.log(result)
+        session.close()
+        //eventTypes = []
+        result.records.forEach(function(record){
+            //console.log(record._fields[0].properties)
+            //eventTypes.push(record._fields[0].properties.Label)
+            var eventTypeOption = document.createElement('option')
+            eventTypeOption.textContent = record._fields[0].properties.Label
+            document.getElementById('addEventType').appendChild(eventTypeOption)
+        })
+    })
+    .catch(e => {
+        session.close();
+        throw e
+    });
+}
 
 span0.onclick = function() {
     eventModal.style.display = "none"
@@ -186,25 +206,6 @@ span1.onclick = function() {
     editEventModal.style.display = "none"
 } 
 
-var session = driver.session();
-session
-.run(`Match (n:EventType) return n`)
-.then((result) => { //result equals all the types of events
-    //console.log(result)
-    session.close()
-    //eventTypes = []
-    result.records.forEach(function(record){
-        //console.log(record._fields[0].properties)
-        //eventTypes.push(record._fields[0].properties.Label)
-        var eventTypeOption = document.createElement('option')
-        eventTypeOption.textContent = record._fields[0].properties.Label
-        document.getElementById('addEventType').appendChild(eventTypeOption)
-    })
-})
-.catch(e => {
-    session.close();
-    throw e
-});
 
 addEventForm.addEventListener('submit', (e) => {
 

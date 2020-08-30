@@ -6,7 +6,7 @@ var session = driver.session();
 
 //get properties for each case in db     var=DBlist
 session
-    .run(`Match (n:Case) return n.caseID`)
+    .run(`Match (n:Case) return n`)
     .then((result) => {
         //console.log(result.records[0]._fields[0])
         session.close()
@@ -95,11 +95,11 @@ function renderListings(items) {
                 //console.log(item.properties.caseID.low)
                 var i = document.createElement('a');
                 i.className = 'sideBarListElements'
-                i.textContent = item
+                i.textContent = item.properties.caseID
                 i.id = 'caseID'
                 i.addEventListener('click', function() {
                     //console.log('clicked')
-                    QString = `MATCH (p:Case {caseID: "${item}"}) 
+                    QString = `MATCH (p:Case {caseID: "${item.properties.caseID}"}) 
 CALL apoc.path.subgraphAll(p, {relationshipFilter: ">", minLevel: 0, maxLevel: 100 })
 YIELD nodes, relationships
 RETURN nodes, relationships, p`
