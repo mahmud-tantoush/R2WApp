@@ -63,14 +63,13 @@
           <option>true</option>
           <option>flase</option>
         </select>
-        <!-- <label for="Expected_Duration">Expected within (Days)</label> -->
-        <!-- <input type="number" id="Expected_Duration"></input> -->
-        <label for="PreviousEvent">Link from previous event (default value if event branching not required)</label>
-        <select name="PreviousEvent" id="PreviousEvent">
-        </select>
-        <label for="ConnectToEvent">Link forward to specific event (default value if event branching not required)</label>
-        <select name="ConnectToEvent" id="ConnectToEvent">
-        </select>
+
+        <button type="button" id ="toggleEventLinks" style='width:fit-content'>Toggle custom event links</button>
+
+        <label for="PreviousEvent" id="PreviousEventLabel">Link from previous event (default value if event branching not required)</label>
+        <select name="PreviousEvent" id="PreviousEvent"></select>
+        <label for="ConnectToEvent" id="ConnectToEventLabel">Link forward to specific event (default value if event branching not required)</label>
+        <select name="ConnectToEvent" id="ConnectToEvent"></select>
         <label for="notes">Please enter any additional information</label>
         <textarea name = "notes" id = "notes"></textarea>
         <button type ="submit">Submit New Event</button>

@@ -235,6 +235,35 @@ span1.onclick = function() {
     editEventModal.style.display = "none"
 } 
 
+PreviousEventLabel = document.getElementById('PreviousEventLabel')
+ConnectToEventLabel = document.getElementById('ConnectToEventLabel')
+PreviousEvent = document.getElementById('PreviousEvent')
+ConnectToEvent = document.getElementById('ConnectToEvent')
+
+PreviousEvent.style.display = "none"
+ConnectToEvent.style.display = "none"
+ConnectToEventLabel.style.display = "none"
+PreviousEventLabel.style.display = "none"
+
+toggleEventLinks = document.getElementById('toggleEventLinks')
+
+toggleEventLinks.onclick = function(){
+
+    if(PreviousEvent.style.display == "none"){
+        PreviousEvent.style.display = "block"
+        ConnectToEvent.style.display = "block"
+        ConnectToEventLabel.style.display = "block"
+        PreviousEventLabel.style.display = "block"
+    } else{
+        PreviousEvent.style.display = "none"
+        ConnectToEvent.style.display = "none"
+        ConnectToEventLabel.style.display = "none"
+        PreviousEventLabel.style.display = "none"
+    }
+
+
+}
+
 
 addEventForm.addEventListener('submit', (e) => {
 
