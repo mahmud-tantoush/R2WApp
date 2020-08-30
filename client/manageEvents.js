@@ -176,6 +176,8 @@ var span1 = document.getElementsByClassName("close")[1];
 var addEventForm = document.getElementById('addEventForm');
 
 addEventBtn.onclick = function() {
+    var input6 = document.getElementById('PreviousEvent')
+
     eventModal.style.display = "block";
 
     var session = driver.session();
@@ -197,6 +199,33 @@ addEventBtn.onclick = function() {
         session.close();
         throw e
     });
+
+    //attach event list to dropdown add event form
+    var input6 = document.getElementById('PreviousEvent')
+    var input7 = document.getElementById('ConnectToEvent')
+    input6.innerHTML = `<select name="PreviousEvent" id="PreviousEvent">`
+    input7.innerHTML = `<select name="ConnectToEvent" id="ConnectToEvent">`
+
+    var eventForward = document.createElement('option')
+    eventForward.innerText = 'Default - no forward connecting node'
+    eventForward.id = "connectionNotNeeded"
+    input7.appendChild(eventForward)
+
+    currentEventsListReversed = currentEventsList.reverse()
+    currentEventsListReversed.forEach(function(item){
+        var PreviousEventItem = document.createElement('option')
+        PreviousEventItem.id = `EventID:${item.identity.low}`
+        PreviousEventItem.textContent = "Label:  " + item.properties.Label + ";   ID:  " + item.identity.low + ";  eventStartDate:  " + item.properties.eventStartDate
+        PreviousEventItem.data = item
+        input6.appendChild(PreviousEventItem)
+
+        var PreviousEventItem1 = document.createElement('option')
+        PreviousEventItem1.id = `EventID:${item.identity.low}`
+        PreviousEventItem1.textContent = "Label:  " + item.properties.Label + ";   ID:  " + item.identity.low + ";  eventStartDate:  " + item.properties.eventStartDate
+        PreviousEventItem1.data = item
+        input7.appendChild(PreviousEventItem1)
+    })
+
 }
 
 span0.onclick = function() {
@@ -214,6 +243,25 @@ addEventForm.addEventListener('submit', (e) => {
     var input5 = document.getElementById('Completed')
     var input2 = document.getElementById('notes')
     var input4 = new Date()
+    var input6 = document.getElementById('PreviousEvent')
+    var input7 = document.getElementById('ConnectToEvent')
+
+    if (input6.value == ""){
+        var input6SelectedEvent = false
+    }else {
+        var input6SelectedEvent = input6.options[input6.selectedIndex].data
+    } 
+
+    var input7SelectedEventQuery
+    if (input7.value == "Default - no forward connecting node"){
+        input7SelectedEventQuery = ""
+        matchNextEvent = ""
+    } else {
+        matchNextEvent = `MATCH (c) where ID(c) = ` +  input7.options[input7.selectedIndex].data.identity.low
+        input7SelectedEventQuery = `CREATE (b)-[e:NewAction {Expected_Duration : 5}]-> (c)`
+    }
+
+    console.log(input7SelectedEventQuery)
 
     //add input checks here
     e.preventDefault();      
@@ -238,6 +286,7 @@ addEventForm.addEventListener('submit', (e) => {
         .run(qstring)
         .then(() => {
             console.log(qstring)
+            //document.getElementById(`caseID: ${currentCaseID}`).click()
             document.location.reload(true)
         })
         .catch(e => {
@@ -247,10 +296,10 @@ addEventForm.addEventListener('submit', (e) => {
             throw e
         });
     } else {
-        var latestEvent = currentEventsList[currentEventsList.length - 1]
+        //var latestEvent = currentEventsList[currentEventsList.length - 1]
         qstring = `
-        MATCH (a) where ID(a) = ${latestEvent.identity.low}\
-        CREATE (a) -[r:NewAction {Expected_Duration : 5}]-> (b:Event ${n})`
+        MATCH (a) where ID(a) = ${input6SelectedEvent.identity.low} ${matchNextEvent}\
+        CREATE (a) -[r:NewAction {Expected_Duration : 5}]-> (b:Event ${n}) ${input7SelectedEventQuery}`
         session
         .run(qstring)
         .then(() => {
@@ -262,7 +311,7 @@ addEventForm.addEventListener('submit', (e) => {
             session.close();
             throw e
         })
-        //document.getElementById(`caseID: ${currentCaseID}`).click()
+        document.getElementById(`caseID: ${currentCaseID}`).click()
     }
 })
 
