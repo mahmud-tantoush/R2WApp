@@ -3,10 +3,6 @@ node_modules/client/node_modules/
 routes/
 models/
 config/
-.env
-config.js
 drvier.js
 otherConns.txt
-package.json
-package-lock.json
 server.js

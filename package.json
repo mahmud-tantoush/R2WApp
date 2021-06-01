@@ -1,0 +1,32 @@
+{
+  "name": "neo4j",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "client-install": "cd client && npm install",
+    "start": "node server.js",
+    "server": "nodemon server.js",
+    "client": "cd client && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "cd client && npm run build",
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "apoc": "^2.1.6",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "*",
+    "concurrently": "^5.1.0",
+    "config": "^3.3.1",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "*",
+    "lodash": "^4.17.19",
+    "neo4j-driver": "*",
+    "nodemon": "^2.0.4",
+    "prop-types": "^15.7.2",
+    "react-router-dom": "^5.2.0"
+  }
+}
