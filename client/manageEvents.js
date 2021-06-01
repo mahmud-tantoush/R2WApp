@@ -119,6 +119,7 @@ function renderListings(items) {
                                     if (labels.includes('neo4jImportId')) {labels.splice(labels.indexOf("neo4jImportId"),1)}
                                     if (labels.includes('Label')) {labels.splice(labels.indexOf("Label"),1)}
                                     if (labels.includes("Notes")) {labels.splice(labels.indexOf("Notes"),1)}
+                                    if (labels.includes("id")) {labels.splice(labels.indexOf("id"),1)}
 
                                     labels.unshift("Notes")            
 
@@ -131,6 +132,8 @@ function renderListings(items) {
                                         b.name = element
                                         b.id = element
                                         b.value = currentEventProperties[element]
+                                        if ( element == "eventStartDate") {b.type = 'date'}
+                                        if ( element == "Expected_Duration") {b.type = 'number'}
                                         //console.log(typeof(currentEventProperties[element]))
 
                                        editEventForm.prepend(b)
@@ -225,7 +228,6 @@ addEventBtn.onclick = function() {
         PreviousEventItem1.data = item
         input7.appendChild(PreviousEventItem1)
     })
-
 }
 
 span0.onclick = function() {
@@ -261,7 +263,7 @@ toggleEventLinks.onclick = function(){
         PreviousEventLabel.style.display = "none"
     }
 
-
+    
 }
 
 
@@ -274,6 +276,7 @@ addEventForm.addEventListener('submit', (e) => {
     var input4 = new Date()
     var input6 = document.getElementById('PreviousEvent')
     var input7 = document.getElementById('ConnectToEvent')
+    var input8 = document.getElementById('Expected_Duration_add')
 
     if (input6.value == ""){
         var input6SelectedEvent = false
@@ -287,7 +290,7 @@ addEventForm.addEventListener('submit', (e) => {
         matchNextEvent = ""
     } else {
         matchNextEvent = `MATCH (c) where ID(c) = ` +  input7.options[input7.selectedIndex].data.identity.low
-        input7SelectedEventQuery = `CREATE (b)-[e:NewAction {Expected_Duration : 5}]-> (c)`
+        input7SelectedEventQuery = `CREATE (b)-[e:NewAction]-> (c)`
     }
 
     console.log(input7SelectedEventQuery)
@@ -301,6 +304,7 @@ addEventForm.addEventListener('submit', (e) => {
     eventStartDate: '${input3.value}',\
     Completed: '${input5.value}',\
     Notes : '${input2.value}',\
+    Expected_Duration : '${input8.value.toString()}',\
     dateLogged: '${input4.toString()}'}\ `
 
     console.log(n) 

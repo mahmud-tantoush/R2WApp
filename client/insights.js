@@ -58,8 +58,8 @@ function renderListings(items) {
         document.getElementById('titleElement').innerText = `All Overdue Items`
 
         var queryString = `Match (a:Event)-[r]->(b:Event) 
-                    Where r.Expected_Duration< duration.inDays(date(a.eventStartDate),date(b.eventStartDate)).days 
-                    return r as Action ,r.Expected_Duration as Expected, duration.inDays(date(a.eventStartDate),
+                    Where a.Expected_Duration< duration.inDays(date(a.eventStartDate),date(b.eventStartDate)).days 
+                    return r as Action ,a.Expected_Duration as Expected, duration.inDays(date(a.eventStartDate),
                     date(b.eventStartDate)).days as Taken , a.Label as Node`
 
         var session = driver.session();
@@ -125,8 +125,8 @@ function renderListings(items) {
                     })
                     YIELD relationships 
                     Match (a:Event)-[r]->(b:Event) 
-                    Where r in relationships and r.Expected_Duration< duration.inDays(date(a.eventStartDate),date(b.eventStartDate)).days 
-                    return r as Action ,r.Expected_Duration as Expected, duration.inDays(date(a.eventStartDate),
+                    Where r in relationships and tofloat(a.Expected_Duration) < duration.inDays(date(a.eventStartDate),date(b.eventStartDate)).days 
+                    return r as Action ,a.Expected_Duration as Expected, duration.inDays(date(a.eventStartDate),
                     date(b.eventStartDate)).days as Taken , a.Label as Node`
             
                     var session = driver.session();
