@@ -4,7 +4,7 @@ var DBlist = []
 
 var session = driver.session();
 
-//get properties for each case in db     var=DBlist
+//get properties for each case in db     var=DBlists
 session
     .run(`Match (n:Case) return n`)
     .then((result) => {
