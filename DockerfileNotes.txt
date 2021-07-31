@@ -1,0 +1,32 @@
+
+FROM node
+#image to build from with node preinstalled
+
+WORKDIR /usr/src/app
+#linux image directory
+
+COPY package.json .
+#copy file to instal packages in next command
+
+RUN npm install 
+#install packages
+
+COPY . .
+#copy rest of files
+
+EXPOSE 5050
+#make accessable port
+
+CMD "node" "server.js"
+# run server on docker image
+
+##########
+CMDS :
+docker build -t docker-r2wapp .   <- to build verson based on Dockerfile commands
+docker run -it -p 5050:5050 docker-r2wapp   <_ run interactve with ampped portd 5050 local to 5050 on odcker
+
+
+#####
+docker compose spesifiyies services - web and neo4j 
+build using docker-compose build
+then docker-compose up  

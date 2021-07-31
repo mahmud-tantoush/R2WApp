@@ -2,8 +2,11 @@ var viz;
 
 var DBlist = []
 
-var session = driver.session();
+fetch('./api/v1/getcases')
+.then((res)=> console.log(res))
+.catch((err)=> console.log(err))
 
+var session = driver.session();
 //get properties for each case in db     var=DBlists
 session
     .run(`Match (n:Case) return n`)
@@ -24,6 +27,7 @@ session
         session.close();
         throw e
     });
+
 
 function draw(query) {  //takes in a query
     var config = {

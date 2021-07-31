@@ -1,0 +1,31 @@
+version: "3"
+services:
+  web:
+    image: docker-r2wapp
+    build: .
+    command: "node server.js"
+    ports:
+      - "5050:5050"
+    depends_on:
+      - "neo4j"
+
+  neo4j:
+    build: ./neo4j
+    environment:
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_dbms_shell_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+      - NEO4JLABS_PLUGINS=["apoc"]
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ./neo4j/data:/data
+      - ./neo4j/logs:/logs
+      - ./neo4j/import:/import
+      - ./neo4j/plugins:/plugins
+
+volumes:
+  neoj4:

@@ -101,7 +101,7 @@ p {
 
 #viz {
   position: relative;
-  width: calc(75% - 2px);
+  width: calc(75% - 3px);
   right:0;
   top:0px;
   height: calc(100% - 51px); ;
@@ -110,7 +110,7 @@ p {
 
 #caseManagement {
   position: relative;
-  width: calc(75% - 2px);
+  width: calc(75% - 3px);
   right:0;
   top:0px;
   height: calc(100% - 51px); ;

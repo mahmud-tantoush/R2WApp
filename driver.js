@@ -11,4 +11,6 @@ const driver = neo4j.driver(
     )
 )
 
+//console.log(driver)
+
 module.exports = driver
