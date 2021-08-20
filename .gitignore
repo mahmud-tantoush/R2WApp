@@ -1,9 +1,5 @@
 node_modules/
-node_modules/client/node_modules/
-routes/
-models/
-config/
-drvier.js
-otherConns.txt
-server.js
 /boilertemplateDanKazJazz
+config/
+DockerfileNotes.txt
+.env

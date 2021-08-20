@@ -3,31 +3,32 @@ var viz;
 var DBlist = []
 
 fetch('./api/v1/getcases')
-.then((res)=> console.log(res))
+.then((res)=> {
+    res.json().then(data => renderListings(data))
+})
 .catch((err)=> console.log(err))
 
-var session = driver.session();
-//get properties for each case in db     var=DBlists
-session
-    .run(`Match (n:Case) return n`)
-    .then((result) => {
-        //console.log(result.records[0]._fields[0])
-        session.close()
-        DBlist = []
-        result.records.forEach(function(record){
-            //console.log(record._fields[0])
-            DBlist.push(record._fields[0])
-        })
-    })
-    .then(() => {
-        //console.log(DBlist)
-        renderListings(DBlist)
-    })
-    .catch(e => {
-        session.close();
-        throw e
-    });
-
+// var session = driver.session();
+// //get properties for each case in db     var=DBlists
+// session
+//     .run(`Match (n:Case) return n`)
+//     .then((result) => {
+//         //console.log(result.records[0]._fields[0])
+//         session.close()
+//         DBlist = []
+//         result.records.forEach(function(record){
+//             //console.log(record._fields[0])
+//             DBlist.push(record._fields[0])
+//         })
+//     })
+//     .then(() => {
+//         //console.log(DBlist)
+//         renderListings(DBlist)
+//     })
+//     .catch(e => {
+//         session.close();
+//         throw e
+//     });
 
 function draw(query) {  //takes in a query
     var config = {

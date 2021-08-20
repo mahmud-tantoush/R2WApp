@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>R2W - view case by id</title>
+
+<script src="js/d3.v4.min.js"></script>
+<script src="js/jquery.min.js"></script>
+<script src="js/underscore-min.js"></script>
+
+<style>
+html,body{
+	margin:0;
+	width:100%;
+	height:100%;
+	overflow-x:hidden; /*tooltip issue*/
+}
+* { 
+	box-sizing: border-box;
+	font-family:sans-serif;
+}
+
+/*----------------timeline specific---------------*/
+.item{
+  fill: #888;
+}
+.item:hover{
+	fill:gold;
+	cursor: pointer;
+}
+
+.tooltip{
+	position: absolute;			
+	//text-align: center;		
+	padding:10px;	
+	width: 200px;					
+	//height: 40px;					
+	padding: 2px;
+	background: #000;
+	font: 11px sans-serif;		
+	color: #fff;
+	border: 0px;		
+	pointer-events: none;			
+	opacity:0;
+}
+/*----------------r2w specific---------------*/
+.links, .path-links{
+  stroke: #000;
+  stroke-width:1;
+}
+.completed_item{
+  fill: #bab86c ;
+}
+line.now{
+	stroke: #888;
+	stroke-width:1;
+	stroke-dasharray: 5,5
+}
+
+text.labels{
+	font-size:9pt;
+}
+
+/*---------------d3 scaling on resize ---------------*/
+.svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+	height: 80%;
+    vertical-align: top;
+}
+#mainsvg {
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: move;
+}
+
+/*---------------- overlay ---------------*/
+.overlay{
+	position:absolute;
+	background: rgba(255,255,255,0.7);
+	top: 0;
+	left: 50%;
+	transform: translate(-50%, 0);
+	display:none;
+	z-index:10;
+}
+
+#block{
+	position:fixed;
+	background: #ccc;
+	top:0;
+	left:0;
+	width:100%;
+	height:100%;
+	opacity: 0.5;
+	display:none;
+	z-index:1;
+}
+
+/*---------------- view and edit event ---------------*/
+#view_event{
+	padding:20px;
+	height:100%;
+	width:80%;
+	overflow:hidden;
+}
+#view_event table{
+	width:100%;
+}
+#view_event td:nth-child(1) {  
+  width:20%;
+  padding:6px 0px;
+}
+#view_event td{  
+  vertical-align:top;
+}
+#view_event input, #view_event textarea {
+	width:100%;
+}
+#view_event textarea {
+	height:200px;
+}
+#view_event button{
+	padding:6px 10px;
+	cursor: pointer;
+	/*display: block;
+    margin: 0 auto;*/
+}
+input, textarea, select{
+	padding:6px 10px;
+}
+	
+/*---------------- responsive ---------------*/
+@media only screen and (max-width: 600px) {
+	.overlay{
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		transform: translate(0,0);
+	}
+	#view_event{
+		padding:10px;
+		width:100%;
+	}
+}
+
+</style>
+
+
+<script>
+	//date time utilities
+
+	/*
+	here we have two kinds of dates
+	also for javascript we might need to account for time zone when we make a new datetime object
+	var d = new Date("Thu Jun 03 2021 18:47:46 GMT+0100 (British Summer Time)");
+
+	var d = new Date("2021-06-26");
+	d.getFullYear()
+	d.getMonth()+1 //note getMonth() returns 0-11
+	d.getDate()
+
+	*/
+	function get_timestamp_from_str(str){
+	  return get_date_from_str(str).getTime();
+	}
+	function get_date_from_str(str){
+	  return new Date(str);
+	}
+
+	function getdate(year,month,day){
+		return new Date(year, month, day).getTime();
+	}
+	function date_to_timestamp(year,month,day){
+		return new Date(year, month, day).getTime();
+	}
+	function timestamp_to_date(timestamp){
+		return new Date(timestamp);
+	}
+
+	//https://codewithhugo.com/add-date-days-js/
+	function addDays(date, days) {
+	  const copy = new Date(Number(date))
+	  copy.setDate(date.getDate() + days)
+	  return copy
+	}
+	//addDays(get_date_from_str("2021-06-26"), 10)
+	
+	function formatDate(date) {
+		var year = date.getFullYear().toString();
+		var month = (date.getMonth() + 101).toString().substring(1);
+		var day = (date.getDate() + 100).toString().substring(1);
+		return year + "-" + month + "-" + day;
+	}
+</script>
+
+</head>
+<body>
+
+<div id="container" class="svg-container">
+<svg id="mainsvg" width="100%" height="100%"></svg>
+</div>
+
+
+<div class="tooltip"></div>
+
+
+
+<script>
+
+//testing only, we can use viewcase.php see function loadCase(ID)
+n4jdata = 
+
+{
+    "nodes": [
+        {
+            "id": 146,
+            "labels": [
+                "Case"
+            ],
+            "properties": {
+                "notes": "",
+                "phsVolunteer": "phs member id",
+                "caseID": "10000",
+                "dateLogged": "Thu Jun 03 2021 18:47:12 GMT+0100 (British Summer Time)",
+                "applicant": "applicant",
+                "Location": "location"
+            }
+        },
+        {
+            "id": 147,
+            "labels": [
+                "Event"
+            ],
+            "properties": {
+                "Label": "MOBILIZATION",
+                "dateLogged": "Thu Jun 03 2021 18:47:46 GMT+0100 (British Summer Time)",
+                "Completed": "flase",
+                "Expected_Duration": "10",
+                "Notes": "",
+                "eventStartDate": "2021-06-03"
+            }
+        },
+        {
+            "id": 149,
+            "labels": [
+                "Event"
+            ],
+            "properties": {
+                "Label": "Generic",
+                "dateLogged": "Thu Jun 03 2021 18:49:09 GMT+0100 (British Summer Time)",
+                "Completed": "flase",
+                "Expected_Duration": "5",
+                "Notes": "",
+                "eventStartDate": "2021-06-04"
+            }
+        },
+        {
+            "id": 148,
+            "labels": [
+                "Event"
+            ],
+            "properties": {
+                "Label": "NAL_Committee_Formation",
+                "dateLogged": "Thu Jun 03 2021 18:48:19 GMT+0100 (British Summer Time)",
+                "Completed": "flase",
+                "Expected_Duration": "6",
+                "Notes": "",
+                "eventStartDate": "2021-06-26"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": 158,
+            "startNodeId": 146,
+            "endNodeId": 147,
+            "type": "NewAction",
+            "properties": {
+                "Expected_Duration": 5
+            }
+        },
+        {
+            "id": 160,
+            "startNodeId": 147,
+            "endNodeId": 149,
+            "type": "NewAction",
+            "properties": {
+                "Expected_Duration": 5
+            }
+        },
+        {
+            "id": 159,
+            "startNodeId": 147,
+            "endNodeId": 148,
+            "type": "NewAction",
+            "properties": {
+                "Expected_Duration": 5
+            }
+        }
+    ]
+}
+
+
+</script>
+
+
+
+
+
+<script>
+
+//Notes only
+
+//"Event" in labels 
+/*
+_.contains(n4jdata.nodes[1].labels, "Event");
+
+start:
+
+Date_Commenced (0)
+
+Start_Date
+Date_Formed
+Date_Submitted
+Date_Dispatched
+Date_Received
+
+end:
+Date_Approved
+
+
+one-off dates:
+Date_of_Visit
+Date_of_Responce
+Date_Connected
+Collection_Date
+
+expected_start:
+Scheduled_Date
+Date_of_Follow_Up
+Reschedule_Date
+
+
+in later examples:
+DateEventCommenced
+
+in new items:
+"eventStartDate": "2020-11-11"
+"Completed": "true",
+"Expected_Duration": "1",
+
+
+"dateLogged": "Thu Jun 03 2021 18:09:34 GMT+0100 (British Summer Time)"
+
+we need to set a date for completion e.g.
+"eventEndDate": "2020-11-12"
+
+
+//timeline adopted from EC previous projects 
+//data = [{"pdf": "Ata-107-Plenaria-CBH-Velhas-06.02.2020-1.pdf", "month": "2", "day": "6", "year": "2020"}, {"pdf": "ata da reunio 1 cbh velhas.pdf", "month": "8", "day": "7", "year": "1998"}]
+
+"eventStartDate": "2020-11-11"
+"Completed": "true",
+"Expected_Duration": "1",
+
++"Date_completed": "2020-11-11"
+*/
+
+</script>
+
+
+<script>
+        
+////////////////////////////////////////////////////////////////////////
+//here we pre-process the data from neo4j via the php driver
+
+function find_node_by_id(nodes,id){
+  //d.endNodeId
+  //d.startNodeId
+  return _.find(nodes,function(d){ return d.id == id;});
+}
+
+function preprocess(n4jdata){
+
+  //filter out the ones with properties.eventStartDate here
+  data = _.filter(n4jdata.nodes, function (d) { return "eventStartDate" in d.properties; } )
+
+  tmp = []
+
+  //make sure that datetime elements such as properties.eventStartDate exists
+  for (i in data){
+    d = data[i];
+    console.log(d)
+    try{
+      d["draw"] = {}
+
+	  start_datetime = get_date_from_str(d.properties.eventStartDate);
+      d["draw"]["start_timestamp"] = start_datetime.getTime();
+	  
+      Expected_Duration_in_days = Number(d.properties.Expected_Duration);
+	  if (Expected_Duration_in_days <= 0){
+		Expected_Duration_in_days = 1;
+	  }
+      d["draw"]["end_timestamp"] = addDays(start_datetime, Expected_Duration_in_days).getTime();
+	  
+	  
+	  
+      d["draw"]["yIdx"] = 0;
+      tmp.push(d);
+    }
+    catch(e){
+      console.warn(e); //resovle nodes with missing attribute here
+    }
+	
+	//deal with completedDate
+	try{
+		if (!(d.properties.completedDate === undefined)){
+			d["draw"]["completed_timestamp"] = get_date_from_str(d.properties.completedDate).getTime();
+		}
+	}
+	catch(e){
+      console.warn(e); //resovle nodes with missing attribute here
+    }
+    
+  }
+
+  function find_overlap(start1,end1,start2,end2){
+	//1623542400000 1624579200000
+	//86400000 miliseconds in a day
+  
+	if (Math.abs(end1-start2) < 86400000  || Math.abs(end2-start1) < 86400000 ){
+		return Math.abs(end1-start2);
+	}
+	
+    return find_overlap_number(start1,end1,start2,end2);
+  }
+  function find_overlap_number(start1,end1,start2,end2){
+    return Math.max(0,Math.min(end1,end2)-Math.max(start1,start2)+1)
+  }
+  
+  //console.log(find_overlap(10,20,5,15)); //6
+  //console.log(find_overlap(10,20,10,25)); //11
+  //console.log(find_overlap(10,20,5,10)); //1
+  //console.log(find_overlap(10,20,5,9)); //0
+
+
+
+	//test: sort by start date before layout?
+	tmp = _.sortBy(tmp, function(d){ return d.draw.start_timestamp;});
+
+  nodes = tmp;
+  
+  //resolve edges
+  edges = [];
+
+  for (i in n4jdata.edges){
+    d = n4jdata.edges[i]
+	//only include edges where nodes exists
+    if(!(find_node_by_id(nodes,d.startNodeId) === undefined) && !(find_node_by_id(nodes,d.endNodeId) === undefined)){
+		d.startNode = find_node_by_id(nodes,d.startNodeId)
+		d.endNode = find_node_by_id(nodes,d.endNodeId)
+		edges.push(d);
+    }
+  }
+  
+	//todo:order the nodes by edges
+	//find all start nodes first?
+	stack = [];
+	for (i in nodes){
+		outedges = _.where(edges, {endNode: nodes[i]})
+		count = outedges.length;
+		if (count == 0){
+			stack.push(nodes[i]);
+		}
+	}
+	stack.reverse();
+	if (stack.length == 0){
+		stack = nodes.slice();
+	}
+	tmp = [];
+	safety = 0;
+	while (stack.length){
+		safety += 1
+		if (safety > 100){
+			console.warn("break");
+			break;
+		}
+		current = stack.pop();
+		if (!_.contains(tmp, current)){
+			tmp.push(current);
+			outedges = _.where(edges, {startNode: current});
+			for (each in outedges){
+				stack.push(outedges[each].endNode);
+			}
+		}
+	}
+	//console.log(tmp);
+	nodes = tmp;
+	
+	//nodes.reverse();
+	
+	//todo: find a better way to layout overlapping items?
+	global_y = 0;
+	
+	function max_timestamp(d){
+		if (d.draw.completed_timestamp == undefined || d.draw.completed_timestamp < 0){
+			return d.draw.end_timestamp;
+		}
+		else{
+			console.log(d.draw.completed_timestamp);
+			return Math.max(d.draw.end_timestamp,d.draw.completed_timestamp);
+		}
+	}
+	
+	
+  //pre-process the data to find overlapping time
+  for (i=0; i<nodes.length;i++){
+    current = nodes[i];
+	overlap_total = 0
+    for (ii=0; ii<nodes.length;ii++){
+      if (i < ii){
+        other = nodes[ii];
+		//todo add here to find max(end_timestamp,completed_timestamp)
+		
+		
+        //find overlap
+        overlap = find_overlap(current.draw.start_timestamp,max_timestamp(current),other.draw.start_timestamp,max_timestamp(other));
+		console.log(current.id +"-"+other.id+ " overlap:"+ overlap)
+        //console.log(overlap)
+        if (overlap > 0){
+			global_y += 1
+			overlap_total += 1;
+			current.draw.yIdx = global_y
+			break;
+          //other.draw.yIdx = current.draw.yIdx + 1
+        }else{
+			//current.draw.yIdx = global_y+1
+		}
+      }
+    }
+	if (overlap_total == 0){
+		current.draw.yIdx = global_y+1
+	}
+  }
+  
+  
+  
+  return {nodes:nodes,edges:edges}
+}
+</script>
+
+
+
+
+<script>
+////////////////////////////////////////////////////////////////////////
+// D3
+var svg = d3.select("#mainsvg");
+var div = d3.select(".tooltip");
+
+var svgWidth;
+var svgHeight;
+var margin;
+
+nodes = []
+
+//controls the time blocks
+var drawAttr = { 
+		  'h':20,
+		  'spacing':20
+		  }
+		  
+function get_sizes(){
+	svgWidth = $("#mainsvg").width();
+	svgHeight = $("#mainsvg").height();
+	margin = {top: 40, right: 20, bottom: 20, left: 20};
+    width = svgWidth - margin.left - margin.right;
+    height = svgHeight - margin.top - margin.bottom;
+
+}
+
+get_sizes();
+
+//responsive svg using initial width and height of svg - this resize all elements in the svg
+//svg.attr("viewBox", "0 0 "+svgWidth+" "+svgHeight).attr("preserveAspectRatio", "xMinYMin meet")
+
+
+// define arrow markers for graph links
+var defs = svg.append('svg:defs');
+	defs.append('svg:marker')
+	.attr('id', 'end-arrow')
+	.attr('viewBox', '0 -5 10 10')
+	.attr('refX', 5)
+	.attr('markerWidth', 13.5)
+	.attr('markerHeight', 13.5)
+	.attr('markerUnits', "userSpaceOnUse")
+	.attr('orient', 'auto')
+	.append('svg:path')
+	.attr('d', 'M0,-5L10,0L0,5');
+ 
+//handle zoom events
+var zoom = d3.zoom()
+			.extent([[0, 0], [width, height]])
+			.scaleExtent([0.3, 5])
+			.translateExtent([[-width*10, -height*20], [width*10, height*20]])
+			.on("zoom",zoomed);  
+   
+svg.call(zoom);
+
+var new_x;
+var currentTransform;
+var currentXDomain = [0,0];
+
+//x axis
+var x = d3.scaleTime()
+	  .domain(currentXDomain)
+	  .range([margin.left, margin.left+width]);
+	  
+// Define and init the axis
+var xAxis = d3.axisTop(x)
+	.tickFormat(d3.timeFormat("%m-%d")) //%Y-
+	//.ticks(d3.timeDay.every(1))
+
+var gX = svg.append("g")
+	.attr("class", "xaxis")
+	//.attr("transform", "translate("+0+"," + (height) + ")")
+	.attr("transform", "translate("+0+"," + (40) + ")")
+	//.call(xAxis)
+
+function zoomed() {
+
+	if (nodes.length > 0){
+		new_x = d3.event.transform.rescaleX(x);
+		currentTransform = d3.event.transform;
+		//console.log(currentTransform);
+		redraw();
+	}
+}
+
+//redraw with scale x
+function redraw(){
+	console.log("redraw");
+
+	//check zoom
+	if (new_x){
+		//console.log("new_x");
+		gX.call(xAxis.scale(new_x));
+		scaleX = new_x;
+	}
+	else{
+		gX.call(xAxis);
+		scaleX = x;
+	}
+		
+	
+		//draw axis labels at 90degrees (axisBottom)
+		/*
+		gX.selectAll("text")	
+				.style("text-anchor", "end")
+				.attr("dx", "-.8em")
+				.attr("dy", ".15em")
+				.attr("transform", function(d) {
+					return "rotate(-45)" 
+					});
+		*/
+		
+
+					
+		//reposition drawing
+		//update rect
+		svg.selectAll(".item")
+			.attr("class", function(d) { 
+				classes = ['item']
+				try {
+				if (d.properties.Completed == "true"){
+				classes.push('completed')
+				}
+				}catch(e){}
+				return classes.join(" ")
+			})
+		
+			.attr("x", 
+			function(d){ //use timestamp to draw
+				d.draw.startX = scaleX(d.draw.start_timestamp);
+				return d.draw.startX;
+			})
+			.attr("width", 
+			function(d){ 
+				//return scaleX(d.draw.end_timestamp)-scaleX(d.draw.start_timestamp) ;
+				d.draw.endX = scaleX(d.draw.end_timestamp);
+				return d.draw.endX-d.draw.startX ;
+			})
+			.attr("y", function(d) {
+				y = 50 + margin.top + (drawAttr.h+drawAttr.spacing)*d.draw.yIdx
+				
+				//not great here
+				if(currentTransform){
+					y += currentTransform.y
+					//y *= currentTransform.k
+				}
+				
+				d.draw.y = y;
+				return y - drawAttr.h/2; //mid align
+			})
+			.attr("height", drawAttr.h)
+		//update lines
+		/*
+		svg.selectAll(".links")
+		  .attr("x1", function(d){return find_node_by_id(nodes,d.startNodeId).draw.endX })
+		  .attr("x2", function(d){ return find_node_by_id(nodes,d.endNodeId).draw.startX })
+		  .attr("y1", function(d){ return find_node_by_id(nodes,d.startNodeId).draw.y })
+		  .attr("y2", function(d){ return find_node_by_id(nodes,d.endNodeId).draw.y })
+		  */
+		  
+		  //update completed_item
+		  
+		  svg.selectAll(".completed_item")
+			.attr("x", 
+			function(d){ //use timestamp to draw
+				return d.draw.startX;
+			})
+			.attr("width", 
+			function(d){ 
+				d.draw.completedX = scaleX(d.draw.completed_timestamp);
+				if(!(d.draw.completedX)){ // node that is Completed:true but no completedDate
+					return 1;
+				}
+				return d.draw.completedX-d.draw.startX ;
+			})
+			.attr("y", function(d) {
+			
+				if (d.properties.Completed == 'true' && d.draw.completedX > 1){
+					//d.draw.y = d.draw.y - drawAttr.h/2;
+				}
+				return d.draw.y; //mid align
+			})
+			.attr("height", drawAttr.h/2)
+		  
+		  
+		  
+		 //update path
+		 svg.selectAll(".path-links")
+		 .attr("d", function(d){
+		 /*
+			x1 = find_node_by_id(nodes,d.startNodeId).draw.endX;
+			x2 = find_node_by_id(nodes,d.endNodeId).draw.startX;
+			y1 = find_node_by_id(nodes,d.startNodeId).draw.y;
+			y2 = find_node_by_id(nodes,d.endNodeId).draw.y;
+			*/
+			try{
+				
+			
+				if (d.startNode.properties.Completed == 'true'){
+					
+					x1 = d.startNode.draw.completedX;
+				}
+				else{
+					x1 = d.startNode.draw.endX;
+				}
+				//x1 = d.startNode.draw.endX;
+				x2 = d.endNode.draw.startX;
+				y1 = d.startNode.draw.y;
+				y2 = d.endNode.draw.y;
+				
+				midX = (x2-x1)/2+x1;
+				//midY = (y2-y1)/2+y1;
+				
+				//pathstr = "M "+x1+" "+y1+" L"+x2+" "+y2;
+				
+				//straight 90oC edges
+				//pathstr = "M" + x1+ "," + y1 + " L" + midX + "," + y1 + " L" + midX + "," + midY + " L" + midX + "," + y2 + " L" + x2 + "," + y2; //vertical
+				//pathstr = "M" + x1+ "," + y1 + " L" + x1 + "," + midY + " L" + x2 + "," + midY + " L" + x2 + "," + y2; //horizontal
+				
+				pathstr = "M" + x1 + "," + y1 + " C" + midX + "," + y1 + " " + midX + "," + y2 + " " + x2 + "," + y2; //cubic
+				
+				//pathstr = "M" + x1+ "," + y1 + " L" + (x1+10) + "," + y1 + " L" + (x1+10) + "," + midY + " L" + (x2-10) + "," + midY + " L" + (x2-10) + "," + y2 +" L" + x2 + "," + y2; //horizontal with leader
+				//console.log(pathstr);
+				return pathstr;
+			}
+			catch(e){
+				console.warn(e);
+				console.log(d);
+			}
+			
+			
+		 })
+		  
+		//redraw labels
+		svg.selectAll(".labels")
+			.attr("x", 
+				function(d){
+					//console.log(d);
+					return d.draw.startX;
+				})
+			.attr("y", 
+				function(d){
+					return d.draw.y+20;
+				})
+			.text(function(d){ return d.id + "-" + d.properties.Label;}) //not ideal but force redraw when label changes
+			
+		//redraw line now
+		now_timestamp = new Date().getTime(); //use 1622826495381 for testing
+
+
+		svg.selectAll(".now")
+			.attr("x1", function(d){return scaleX(now_timestamp);})
+			.attr("y1", 0)
+			.attr("x2", function(d){return scaleX(now_timestamp);})
+			.attr("y2", svgHeight)
+	
+}//end redraw
+
+function update_axis(){
+	console.log("update_axis");
+	try{
+		//update scale function
+		///*
+		//x = d3.scaleTime()
+		x.range([margin.left, margin.left+(width)]);
+		//x.range([0, width]);
+		//x.range([0, (svgWidth/currentScale)]);
+
+		xAxis.tickFormat(d3.timeFormat("%m-%d")) //%Y-
+		//.ticks(d3.timeDay.every(1))
+		//*/
+		//svg.selectAll("g.xaxis").call(xAxis);
+		
+		//gX.attr("transform", "translate("+0+"," + (height) + ")")
+				
+	}catch(e){}
+}
+
+//update the chart when data changes
+function update(nodes,edges){
+	console.log("update");
+	
+	//currentXDomain = [d3.min(nodes, function(d) { return d.draw.start_timestamp}),d3.max(nodes, function(d) { return d.draw.end_timestamp})]
+	
+	
+	//1210000000 = 14 days in ms
+	//1296000000 = 15 days in ms
+	//2592000000 = 30 days in ms
+	//latest_timestamp = d3.max(nodes, function(d) { return d.draw.end_timestamp});
+	//currentXDomain = [latest_timestamp-2592000000,latest_timestamp] //show lastest 30 days on init
+	
+	now = new Date().getTime()
+	//currentXDomain = [now-86400000,now+2592000000] //show lastest current day-1 up to current day +30 days on init
+	currentXDomain = [now-1296000000,now+1296000000] //show lastest current day-15 up to current day +15 days on init
+	
+	
+	x.domain(currentXDomain)
+	
+	svg.call(zoom.transform, d3.zoomIdentity); // resets zoom/pan transform
+	
+	update_axis();
+	
+      
+
+    //draw timeline item
+
+	nodeSelect = svg.selectAll(".item").data(nodes, function(d){ return d.id;});
+	nodeEnter = nodeSelect.enter().append("rect")
+		.classed("item",true)
+		.on("click", handleClick)
+		.on("mouseover", handleMouseOver)
+		.on("mouseout", handleMouseOut)
+	nodeSelect.exit().remove();
+
+   // Create Event Handlers for mouse
+    function handleClick(d, i) { 
+      //console.log(d.pdf)
+      //console.log(date_to_timestamp(d.year,d.month,d.day))
+      //$("#date").html(d.pdf + " " + d.year+ " " +d.month+ " " +d.day + " " + date_to_timestamp(d.year,d.month,d.day))
+      //$("#pdf2text")[0].contentWindow.process(d.pdf);
+	  $("#view_event").show();
+	  $("#block").show();
+	  $("#view_event .content").html(editorJSON(d));
+    }
+    function handleMouseOver(d, i) {  
+		console.log(d)
+		//d3.select(this).moveToFront()
+
+		//tooltip
+		div.transition()		
+			.duration(200)		
+			.style("opacity", .9);		
+		//div	.html(d.pdf+"<br>"+d.day+"/"+d.month+"/"+d.year)	
+		div.html(inspectJSON(d.properties))	
+			.style("left", (d3.event.pageX+10) + "px")		
+			.style("top", (d3.event.pageY-30) + "px");	
+    }
+    function handleMouseOut(d, i) {  
+      //console.log(d.pdf)
+      div.transition()		
+        .duration(200)		
+        .style("opacity", 0);		
+    }
+    
+	
+	//locate nodes marked as completed
+	completedNodes = _.filter(nodes,function(d){
+		try{
+			return d.properties.Completed == "true";
+		}catch(e){
+			return;
+		}
+	});
+	console.log(completedNodes);
+	completedNodesSelect = svg.selectAll(".completed_item").data(completedNodes, function(d){ return d.id;});
+	completedNodesSelect.enter().append("rect")
+		.classed("completed_item",true)
+		.on("click", handleClick)
+		.on("mouseover", handleMouseOver)
+		.on("mouseout", handleMouseOut)
+	completedNodesSelect.exit().remove();
+
+	
+  //draw edges
+  /*
+  //simple line
+  edgeSelect = svg.selectAll(".links").data(edges, function(d){ return d.id;});
+  edgeEnter = edgeSelect.enter().append("line")
+      .classed("links",true)
+	  .attr('marker-end', 'url(#end-arrow)')
+        
+      //.style("stroke-width",10)
+      //.attr("x1", function(d){return find_node_by_id(nodes,d.startNodeId).draw.endX })
+      //.attr("x2", function(d){ return find_node_by_id(nodes,d.endNodeId).draw.startX })
+      //.attr("y1", function(d){ return find_node_by_id(nodes,d.startNodeId).draw.y })
+      //.attr("y2", function(d){ return find_node_by_id(nodes,d.endNodeId).draw.y })
+      
+  
+  edgeSelect.exit().remove();
+  */
+  
+  //draw edges2
+  //simple line as path 90oC kink
+	pathSelect = svg.selectAll(".path-links").data(edges, function(d){ return d.id;});
+	pathEnter = pathSelect.enter().append("path")
+		.classed("path-links",true)
+		.attr('marker-end', 'url(#end-arrow)')
+		.attr("fill", "none")
+		
+		/*
+		.attr("d", function(d){
+			d.startNode = find_node_by_id(nodes,d.startNodeId)
+			d.endNode = find_node_by_id(nodes,d.endNodeId)
+		})
+		*/
+		
+	pathSelect.exit().remove();
+
+	//draw labels
+	labelSelect = svg.selectAll(".labels").data(nodes, function(d){ return d.id;});
+	labelEnter = labelSelect.enter().append("text")
+		.classed("labels",true)
+		.attr("text-anchor","start")
+		.attr("alignment-baseline","middle")
+		
+		
+	labelSelect.exit().remove();
+
+
+	redraw(); //do the drawing procedures in one function
+	
+	
+	
+	
+} //end update
+
+//draw a line today (client datetime)
+function init_line_now(){
+	svg.append("line").classed("now",true)
+}
+
+window.addEventListener('resize', resize);
+
+function resize() {
+
+	console.log("resize")
+	get_sizes();
+	update_axis();
+	
+	//needs refactoring here
+	if (currentTransform){
+		svg.call(zoom.transform, currentTransform)
+	}
+	else{
+		redraw();
+	}
+	//note issue if  zoomed event triggered
+}
+
+
+d3.selection.prototype.moveToFront = function() {
+  return this.each(function(){
+	this.parentNode.appendChild(this);
+  });
+};
+
+
+
+////////////////////////////////////////////////
+$( document ).ready(function() {
+
+    //data = preprocess(n4jdata)
+
+   // update(data.nodes,data.edges);
+   
+   init_line_now();
+   
+   
+   //note: older browser does not support this, will need polyfill
+   params = new URLSearchParams(location.search)
+   if (!(params.get('id') === undefined)){
+		loadCase(params.get('id'));
+   }else{
+	loadCase('10000'); //for testing only
+   }
+   
+   
+});
+////////////////////////////////////////////////
+
+
+</script>
+
+<div id="current_case_properties"></div>
+
+Test case ID:
+<br>
+<button onclick="loadCase('10000')">10000</button>
+<button onclick="loadCase('10001')">10001</button>
+<br>
+Test add Event to currentCaseID:
+<br>
+<button onclick="add_event()">Add Event to Case</button>
+
+<hr>
+Notes: 
+<li>
+does not work on older case ID with different date attributes 
+
+	<ul>
+		<li>
+		requires "eventStartDate" and "Expected_Duration" within the Event(node) - draw.start_timestamp and draw.end_timestamp
+		</li>
+		<li>
+		requires "Completed" within the Event(node) (adds a class to the rect for colour coding if required)
+		</li>
+		<li>
+		requires "completedDate" within the Event(node) (adds drawing of actual end date of an Event)
+		</li>
+	</ul>
+</li>
+<li>need to resize the svg to accomodate additional Events (check on landscape mode in a mobile) [done]</li>
+<li>timeline bar can be very small in default state - zoom extent to the whole timeline on small devices or when the timeline is long</li>
+<li>note: zoom behaviour does not follow mousewheel, y-axis pan is not related to zoom</li>
+<li>todo: keep the zoom transform and domain in localstorage</li>
+<li>to discuss: all Events within a case should relate to the Case node - so the chain is not broken when we remove an Event</li>
+<li>to discuss: add "completedDate" to Events?</li>
+<li>to discuss: add "actualStartDate" to Events?</li>
+<li>Event properties label lexicon [done]</li>
+<li>Draw a "template" from another case adjusted to the current start date- dispaly as ghosted for reference</li>
+<li>to dicuss: whether to store the expected duration within the edges - which allows us to shift the expected start date down the line</li>
+<li>js query string e.g. ?id=10000 to view a particular case id and to work with browser history [done]</li>
+
+
+<script>
+////////////////////////////////////////////////
+// load data from view_case.php from n4j dbms
+var currentCaseID;
+
+function loadCase(caseID){
+
+//Mahmud trying here ...
+// 	fetch(`api/v1/getcase/00001`).then(res => res.json().then(data => {
+// 		console.log(data)	
+// 		try{
+// 			n4jdata = JSON.parse(data);
+// 			console.log( n4jdata );
+			
+// 			if (n4jdata.nodes.length > 0){
+// 				data = preprocess(n4jdata)
+// 				update(data.nodes,data.edges);
+				
+				
+// 				currentCaseID = caseID;
+// 				//assume n4jdata.nodes[0] is the case node
+// 				$("#current_case_properties").html("Case ID: "+ currentCaseID +"<br>"+ inspectJSON(n4jdata.nodes[0].properties));
+// 			}else{
+// 				error_message("Error loading "+caseID);
+// 			}
+	  
+//     }catch(e){
+//       console.warn(e);
+//       console.log( data );
+// 	  error_message("Error loading "+caseID);
+	  
+//     }
+//   }));
+
+
+  $.get( "view_case.php", { id: caseID } )
+  .done(function( data ) {
+    //console.log( "Data Loaded: " + data );
+	console.log(data)
+    try{
+      n4jdata = JSON.parse(data);
+      console.log( n4jdata );
+      
+	  if (n4jdata.nodes.length > 0){
+		  data = preprocess(n4jdata)
+		  update(data.nodes,data.edges);
+		  
+		  
+		  currentCaseID = caseID;
+		  //assume n4jdata.nodes[0] is the case node
+		  $("#current_case_properties").html("Case ID: "+ currentCaseID +"<br>"+ inspectJSON(n4jdata.nodes[0].properties));
+	  }else{
+		error_message("Error loading "+caseID);
+	  }
+	  
+    }catch(e){
+      console.warn(e);
+      console.log( data );
+	  error_message("Error loading "+caseID);
+	  
+    }
+  });
+ 
+} //load case
+
+function error_message(message){
+	alert(message);
+}
+
+//for popup/tooltip
+function inspectJSON(data){
+  var string = "";
+
+  $.each(data, function(key,item) {
+	try{
+	  string = string + "K: <b>" + key + "</b> V: "+ JSON.stringify(item) + "<br>";
+	}
+	catch(e){
+	  console.log(e);
+	}
+  });
+  return string;
+}
+
+////////////////////////////////////////////////
+//todo: make this external
+type_lexicon = {
+	//"Label":'readonly',
+	"editor":'readonly',
+	"dateLogged":'readonly',
+	"Completed":'boolean',
+	"Expected_Duration":'number',
+	"eventStartDate":'date',
+	"completedDate":'date',
+	"Notes":'textarea',
+	"Label":'label'
+}
+label_lexicon = {
+	"editor":'Last edited by',
+	"dateLogged":'Date logged',
+	"Expected_Duration":'Expected duration (days)',
+	"eventStartDate":'Start date',
+	"completedDate":'Completed date'
+}
+
+function get_label(key){
+	if(!(label_lexicon[key] === undefined)){
+		return label_lexicon[key];
+	}
+	return key;
+}
+
+
+function input_by_type(key,item){
+	if(!(type_lexicon[key] === undefined)){
+		
+		if(type_lexicon[key] == 'readonly'){
+			return item;
+		}
+		if (type_lexicon[key] == 'boolean'){
+			if (item == 'true'){ isTrue = " selected"; isFalse = "";}
+			else{ isTrue = ""; isFalse = " selected";}
+			return "<select class=editor name='"+key+"'><option"+isTrue+">true</option><option"+isFalse+">false</option></select>";
+		}
+		if (type_lexicon[key] == 'number'){
+			return "<input type=number class=editor name='"+key+"' value="+JSON.stringify(item)+">";
+		}
+		
+		if (type_lexicon[key] == 'date'){
+			return "<input type=date class=editor name='"+key+"' value="+JSON.stringify(item)+">";
+		}
+		if (type_lexicon[key] == 'textarea'){
+			return "<textarea  class=editor name='"+key+"'>"+item+"</textarea>";
+		}
+		if (type_lexicon[key] == 'label'){
+			
+			
+			tmp = "<select  class=editor name='"+key+"' id='"+key+"' >";
+			tmp += "<option>Generic</option><option>Meter_Purchased</option><option>Meter_Card_Attached</option><option>Passed_to_AE/Record Assistant</option><option>Passed_to_Water_Chauki</option><option>Work_Order_Given</option><option>Gang_Comes_For_Chauki_Connection</option><option>MOBILIZATION</option><option>NAL_Committee_Formation</option><option>Verification</option><option>Verification_App</option><option>Online_Form</option><option>Scrutiny_Fee</option><option>File_Dispatched</option><option>Passed_To_JE</option><option>JE_Responce</option><option>JE_Visit</option><option>MS_Site_Visit</option><option>JE_Report</option><option>SE_Check</option><option>AE_Verification</option><option>PForm_Received</option><option>CForm_Collected</option><option>JEM_Received_File</option><option>JEM_Site_Visit</option><option>Passed_to_SE</option><option>Passed_to_AE</option><option>ED_Received_File</option><option>Clerk_Makes_Challan</option><option>Challan_Signed</option><option>RM_Fee_Payment</option><option>Receipt_to_JEM</option><option>Road_Permit_Received</option><option>C+32no-Form_Payment</option><option>Meter_Purchased</option><option>Meter_Card_Attached</option><option>Passed_to_AE/Record Assistant</option><option>Passed_to_Water_Chauki</option><option>Work_Order_Given</option><option>Gang_Comes_For_Chauki_Connection</option><option>MOBILIZATION</option><option>NAL_Committee_Formation</option><option>Verification</option><option>Verification_App</option><option>Online_Form</option><option>Scrutiny_Fee</option><option>File_Dispatched</option><option>Passed_To_JE</option><option>JE_Responce</option><option>JE_Visit</option><option>MS_Site_Visit</option><option>JE_Report</option><option>SE_Check</option><option>AE_Verification</option><option>PForm_Received</option><option>CForm_Collected</option><option>JEM_Received_File</option><option>JEM_Site_Visit</option><option>Passed_to_SE</option><option>Passed_to_AE</option><option>ED_Received_File</option><option>Clerk_Makes_Challan</option><option>Challan_Signed</option><option>RM_Fee_Payment</option><option>Receipt_to_JEM</option><option>Road_Permit_Received</option><option>C+32no-Form_Payment</option></select>"
+			//dirty fix here
+			tmp = tmp.replace("<option>"+item,"<option selected>"+item);
+			
+			return tmp;
+		}
+		
+		
+	}//if key in lexicon
+	//default
+	return "<input class=editor name='"+key+"' value="+JSON.stringify(item)+">";
+}
+
+
+//for editing form of JSON 
+function editorJSON(data){
+
+	var string = "<table id=json_form>";
+
+	console.log(data);
+	//compledDate_exists = _.contains(data.properties, "completedDate")
+	compledDate_exists = ("completedDate" in data.properties)
+
+	string += compledDate_exists;
+
+	//note dictionary or assoc array are not ordered, add code here if we want it in order
+
+
+	$.each(data.properties, function(key,item) {
+	try{
+	  //string = string + "K: <b>" + key + "</b> V: "+ JSON.stringify(item) + "<br>";
+	  string += "<tr id="+key+">";
+	  string += "<td>";
+	  string += get_label(key);
+	  string += "</td>";
+	  string += "<td>";
+	  //string += "<input class=editor name='"+key+"' value="+JSON.stringify(item)+">";
+	  string += input_by_type(key,item);
+	  string += "</td>";
+	  string += "</tr>";
+	  
+	  ///*
+	  //hard coded override here to add an attribute - to be refactored
+	  if (!compledDate_exists){
+		  if (key == "Completed"){
+			if (item == "true"){
+			  string += "<tr id=completedDate>";
+			  string += "<td>";
+			  string += get_label("completedDate");
+			  string += "</td>";
+			  string += "<td>";
+			  string += input_by_type("completedDate",formatDate(new Date()));
+			  string += "</td>";
+			  string += "</tr>";
+			}
+		  }
+	  }
+	  //*/
+	  
+	  
+	}
+	catch(e){
+	  console.log(e);
+	}
+	});
+	
+	
+	string += "</table>";
+
+	if (!(data.id === undefined)){
+		string += "<button onclick='commit_edit("+data.id+");'>Update</button>";
+		string += "<hr>";
+		string += "<button onclick='todo()'>Associate Event with a previous Event</button>";
+		string += "<button onclick='add_event_follow("+data.id+")'>Add an Event following this Event</button>";
+	}
+	else if (!(data.previous_event === undefined)){
+		string += "<button onclick='commit_add_event_follow("+data.previous_event+")'>Add follow up event</button>";
+	}
+	else{
+		string += "<button onclick='commit_add_event()'>Add</button>";
+	}
+	string += "<hr>";
+	string += inspectJSON(data); //dev only
+
+	return string;
+}
+
+function resolve_form(){
+	
+	postobj = {status: 1, param:{} }
+	
+	$(".editor").each(function( index ) {
+		//console.log( index );
+		//console.log( $( this ).attr("name") );
+		//console.log( $( this ).val() );
+		key = $( this ).attr("name");
+		console.log( key );
+		if (key == "Label"){
+			
+			val = $("#Label option:selected").val(); //tmp only
+		}else{
+			val = $(this).val();
+		}
+		//todo: add client side verification here
+		if (key == 'eventStartDate'){
+			if (val == ''){
+				error_message("invalid date")
+				postobj.status = 0
+				
+			}
+		}
+
+		postobj.param[key] = val;
+	});
+	
+	return postobj;
+}
+
+
+function commit_edit(id){
+	console.log(id); //node id to edit
+	postobj = resolve_form();
+	console.log( postobj );
+	///*
+	if (postobj.status){
+		$.post( "edit_event.php", {id:id, d: postobj.param} )
+		.done(function( data ) {
+			console.log( "Data Loaded: " + data );
+			try{
+
+			}catch(e){
+			  console.warn(e);
+			}
+			
+			//reload the case
+			loadCase(currentCaseID);
+			//hideoverlay();
+		});
+	}
+	
+	//*/
+}//commit_edit
+
+////////////////////////////////////////////////
+//add Event
+//given: currentCaseID
+
+function add_event(){
+	if (!currentCaseID){
+		console.log("no active case id");
+		return;
+	}
+	console.log("add_event");
+	
+	today = new Date();
+	
+	//create an empty element
+	d = {
+		properties:{
+			"Label":"Generic",
+			"Completed":"false",
+			"Expected_Duration":"1",
+			"Notes":"",
+			"eventStartDate": formatDate(today)
+		}
+	}
+
+	$("#view_event").show();
+	$("#block").show();
+	$("#view_event .content").html(editorJSON(d));
+	
+}
+
+function commit_add_event(){
+	if (!currentCaseID){
+		console.log("no active case id");
+		return;
+	}
+	console.log(currentCaseID); //node id to edit
+	postobj = resolve_form();
+	
+	if (postobj.status){
+		//overrides
+		postobj.param['dateLogged'] = new Date();
+		postobj.param['Label'] = "Generic";
+		
+		console.log( postobj );
+		
+		//create an Event and create relationship between caseID - new Event
+		$.post( "add_event.php", {caseID: currentCaseID, d: postobj.param} )
+		.done(function( data ) {
+			console.log( "Data Loaded: " + data );
+			try{
+
+			}catch(e){
+			  console.warn(e);
+			}
+			
+			//reload the case
+			loadCase(currentCaseID);
+			hideoverlay();
+		});
+	}
+}
+
+
+
+function add_event_follow(eventID){
+	console.log("add_event_follow")
+	console.log(eventID)
+	
+	today = new Date();
+	try{
+		previousNode = find_node_by_id(nodes,eventID);
+		today = new Date(previousNode.draw.end_timestamp);;
+	}catch(e){}
+	//create an empty element
+	d = {
+		previous_event: eventID,
+		properties:{
+			"Label":"Generic",
+			"Completed":"false",
+			"Expected_Duration":"1",
+			"Notes":"",
+			"eventStartDate": formatDate(today)
+		}
+	}
+
+	$("#view_event").show();
+	$("#block").show();
+	$("#view_event .content").html(editorJSON(d));
+}
+
+function commit_add_event_follow(eventID){
+	postobj = resolve_form();
+	
+	if (postobj.status){
+		//overrides
+		postobj.param['dateLogged'] = new Date();
+		postobj.param['Label'] = "Generic";
+
+		//create an Event and create relationship between Event(eventID) - new Event
+		$.post( "add_event_follow.php", {eventID: eventID, d: postobj.param} )
+		.done(function( data ) {
+			console.log( "Data Loaded: " + data );
+			try{
+
+			}catch(e){
+			  console.warn(e);
+			}
+			//reload the case
+			loadCase(currentCaseID);
+			hideoverlay();
+		});
+	}
+}
+
+function todo(){
+	error_message("todo");
+}
+
+function hideoverlay(){
+$('#block').hide();
+$('.overlay').hide();
+}
+</script>
+
+
+<div id="block" onclick="hideoverlay()">&nbsp;</div>
+
+
+
+<div id="view_event"  class="overlay">
+<button onclick="hideoverlay()" style="float:right">close</button>
+<div class="content">
+</div>
+</div>
+
+
+
+</body>
+</html>
