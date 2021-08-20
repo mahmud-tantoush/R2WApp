@@ -42,6 +42,7 @@ router.get(`/getcases`, (req, res)=>{
       })
 })
 
+<<<<<<< HEAD
 //post
 router.post(`/createcase`, (req, res)=>{
     //console.log('/api/v1/getcases link works')
@@ -62,13 +63,19 @@ router.post(`/createcase`, (req, res)=>{
       res.send(error)
     })
 })
+=======
+>>>>>>> a6f68cbfcec24174cc34cb706d2150aff29704db
 
 //get
 router.get(`/getcaseevent/:caseID`, (req, res)=>{
     //console.log('/api/v1/getcase/:case link works')
     console.log(req.params)
     const session = driver.session()
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> a6f68cbfcec24174cc34cb706d2150aff29704db
     q = `MATCH (p:Case {caseID: '${req.params.caseID}'}) 
 CALL apoc.path.subgraphAll(p, {relationshipFilter: ">", minLevel: 0, maxLevel: 100 })
 YIELD nodes, relationships
@@ -80,7 +87,11 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
       .then(result => {
         //console.log(result)
         session.close();
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> a6f68cbfcec24174cc34cb706d2150aff29704db
         try{
           //assume it goes ok with [0:nodes,1:relations]
           var getnodes_per_record = result.records.map(record => record._fields[0]);
@@ -98,7 +109,11 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
             }
             return low + res
           }
+<<<<<<< HEAD
 
+=======
+          
+>>>>>>> a6f68cbfcec24174cc34cb706d2150aff29704db
           getnodes_per_record.forEach(function(getnodes){
               getnodes.forEach(function(tmpnode1){
                 tmpnode1.forEach(function(tmpnode){
@@ -130,6 +145,7 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
                 });
               });
           });
+<<<<<<< HEAD
 
 
 
@@ -137,12 +153,25 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
 
           res.json(output)
 
+=======
+          
+          
+          
+          output = {"nodes":nodes,"edges":edges};
+
+          res.json(output)
+          
+>>>>>>> a6f68cbfcec24174cc34cb706d2150aff29704db
         }
         catch(e){
           console.log(e);
           res.send(error)
         }
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> a6f68cbfcec24174cc34cb706d2150aff29704db
       })
       .catch(error => {
         session.close();
@@ -150,8 +179,12 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
       })
 })
 
+<<<<<<< HEAD
 
 module.exports = router;
 
 
 
+=======
+module.exports = router;
+>>>>>>> a6f68cbfcec24174cc34cb706d2150aff29704db
