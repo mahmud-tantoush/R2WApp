@@ -42,26 +42,49 @@ router.get(`/getcases`, (req, res)=>{
       })
 })
 
+
 //post
 router.post(`/createcase`, (req, res)=>{
     //console.log('/api/v1/getcases link works')
-  //var newCase = JSON.parse(JSON.stringify(req.body))
-  var newCase = JSON.stringify(req.body)
-  var newCase = newCase.replace(/"([^"]+)":/g, '$1:');
+    //var newCase = JSON.parse(JSON.stringify(req.body))
+    var newCase = JSON.stringify(req.body)
+    var newCase = newCase.replace(/"([^"]+)":/g, '$1:');
 
-  q = `CREATE (n:Case ${newCase}) return n`
-  console.log(q)
-  const session = driver.session()
-  session.run(q) 
-    .then(result => {
-      session.close();
-      res.json({sucess: 'True  - new case with properties created'})
-    })
-    .catch(error => {
-      session.close();
-      res.send(error)
-    })
+    q1 = "MATCH (p:Case {caseID: '"+req.body['caseID']+"'}) return count(p) as len"
+    q2 = `CREATE (n:Case ${newCase}) return n`
+    q = [q1,q2]
+
+    
+    //q = `CREATE (n:Case ${newCase}) return n`
+    console.log(q)
+    const session = driver.session()
+    
+    function exec_query(idx){
+        session.run(q[idx]) 
+        .then(result => {
+           if(idx == 0){
+              count_of_caseID = toNumber(result.records[0]._fields[0]);
+              if (count_of_caseID == 0){
+                //go ahead and add the new case
+                exec_query(1)
+              }else{
+                console.log("exists")
+                res.json({status: 0, message: 'caseID already exists'})
+              }
+           }else{
+               res.json({status: 1, message: 'new case with properties created'})
+               session.close();
+           }
+        })
+        .catch(error => {
+          session.close();
+          res.send(error)
+        })
+    }
+    exec_query(0)
+    
 })
+
 
 
 //get
