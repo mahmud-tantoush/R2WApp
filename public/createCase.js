@@ -35,38 +35,49 @@ createCaseForm.addEventListener('submit', (e) => {
         
         errorElement.innerText = ''
         
-        var newCase = `{caseID: '${caseID.value}', \
-        applicant: '${applicant.value}',\
-        Location: '${loc.value}',  \
-        phsVolunteer: '${phsVolunteer.value}', \
-        dateLogged : '${new Date()}', \
-        notes : '${notes.value}'}`
+        dateLogged = new Date() 
+        var newCase = `{"caseID": "${caseID.value}", \
+        "applicant": "${applicant.value}",\
+        "Location": "${loc.value}",  \
+        "phsVolunteer": "${phsVolunteer.value}", \
+        "dateLogged" : "${dateLogged.toISOString()}", \
+        "notes" : "${notes.value}"}`
 
-        console.log(newCase) 
-        // run the create command in db
-        var session = driver.session();
-        session
-        .run(`create (n:Case ${newCase}) return n`)
-        .then((result) => {
-            //console.log(result.records[0]._fields[0])
-            session.close()
-            DBlist = []
-            result.records.forEach(function(record){
-                //console.log(record._fields[0])
-                DBlist.push(record._fields[0])
-            })
-        })
-        .then(() => {
-            //console.log('got through the second then')
-            createCaseForm.innerHTML = "<h6><b>Case Created, go to the <a href='index.html'>graphs page </a> to view</b></h6>"
-        })
+        //console.log(JSON.stringify(newCase)) 
+        $.ajax({
+        url: '/api/v1/cases/createcase',
+        type: 'POST',
+        contentType: 'application/json',
+        data: newCase,
+        success: function(response){console.log(response)}})
+        .then(createCaseForm.innerHTML = "<h6><b>Case Created, go to the <a href='index.html'>graphs page </a> to view</b></h6>")
         .catch(e => {
             session.close();
             throw e
         });
+    
+        // run the create command in db
+        // var session = driver.session();
+        // session
+        //.run(`create (n:Case ${newCase}) return n`)
+        // .then((result) => {
+        //     //console.log(result.records[0]._fields[0])
+        //     session.close()
+        //     DBlist = []
+        //     result.records.forEach(function(record){
+        //         //console.log(record._fields[0])
+        //         DBlist.push(record._fields[0])
+        //     })
+        // })
+        // .then((result) => {
+        //     console.log(result)
+        //     createCaseForm.innerHTML = "<h6><b>Case Created, go to the <a href='index.html'>graphs page </a> to view</b></h6>"
+        // })
+        // .catch(e => {
+        //     session.close();
+        //     throw e
+        // });
     }
-
-
 })
 
 //console.log(createCaseForm)

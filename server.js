@@ -28,10 +28,11 @@ server.use(function (req, res, next) {
 });
 
 server.use(cors())
+server.use(express.json());
 
 const cases_api = require('./routes/cases');
 
-server.use('/api/v1', cases_api);
+server.use('/api/v1/cases', cases_api);
 
 server.get('/', (req, res)=>{
   //res.json(products) //serves raw Json and seeds to endpoint
@@ -108,7 +109,7 @@ server.get(`/api/v1/getnodes`, (req, res)=>{
 
 // all other api endpoints
 server.all('*', (req, res)=>{
-  res.status(404).send('No such API exisits - MT!')
+  res.status(404).send('No such API exisits')
 })
 
 const port = process.env.PORT
