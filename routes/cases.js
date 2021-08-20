@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 const driver = require('../driver.js');
 
+//general utility: converts identify to number in javascript
+function toNumber({ low, high }) {
+let res = high
+for (let i = 0; i < 32; i++) {
+  res *= 2
+}
+return low + res
+}
+
+
 //get
 router.get(`/getcase/:caseID`, (req, res)=>{
     //console.log('/api/v1/getcase/:case link works')
@@ -112,14 +122,7 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
           var nodes = [];
           var edges = [];
 
-          //converts identify to number in javascript
-          function toNumber({ low, high }) {
-            let res = high
-            for (let i = 0; i < 32; i++) {
-              res *= 2
-            }
-            return low + res
-          }
+
           getnodes_per_record.forEach(function(getnodes){
               getnodes.forEach(function(tmpnode1){
                 tmpnode1.forEach(function(tmpnode){
