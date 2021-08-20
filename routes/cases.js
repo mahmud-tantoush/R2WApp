@@ -52,6 +52,25 @@ router.get(`/getcases`, (req, res)=>{
       })
 })
 
+//get: check if a caseID exists
+router.get(`/caseexists/:caseID`, (req, res)=>{
+
+    console.log(req.params)
+    const session = driver.session()
+    q = `MATCH (n:Case {caseID:'${req.params.caseID}'}) RETURN count(n) as len`
+    console.log(q)
+    session.run(q) 
+      .then(result => {
+        console.log(result)
+        session.close();
+        count_of_caseID = toNumber(result.records[0]._fields[0]);
+        res.json(count_of_caseID)
+      })
+      .catch(error => {
+        session.close();
+        res.send(error)
+      })
+})
 
 //post
 router.post(`/createcase`, (req, res)=>{
