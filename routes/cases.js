@@ -135,20 +135,17 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
 
           res.json(output)
 
-          
-          
-          
-          output = {"nodes":nodes,"edges":edges};
-
-          res.json(output)
-          
+         
         }
         catch(e){
           console.log(e);
-          res.send(error)
         }
-        session.close();
       })
+      .catch(error => {
+        session.close();
+        res.send(error)
+      })
+      
 })
 
 module.exports = router;
