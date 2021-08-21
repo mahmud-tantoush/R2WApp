@@ -23,7 +23,8 @@ router.get(`/getcase/:caseID`, (req, res)=>{
       .then(result => {
         //console.log(result)
         session.close();
-        res.json(result.records)
+        //res.json(result.records)
+        res.json(result.records[0]._fields[0].properties)
       })
       .catch(error => {
         session.close();
