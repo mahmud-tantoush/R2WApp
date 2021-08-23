@@ -39,6 +39,18 @@ server.get('/', (req, res)=>{
   res.send('<h1>Home page </h1><a href="/api/products" >Products</a>')
 })
 
+///////////// view template: npm install ejs
+server.set('view engine', 'ejs')
+
+server.get(`/view/case/:caseID`, (req, res)=> {
+    res.render('case', { 'caseID' : req.params.caseID }) //under views/case.ejs
+})
+server.get(`/view/event/:eventID`, (req, res)=> {
+    res.render('event', { 'eventID' : req.params.eventID }) //under views/event.ejs
+})
+///////////// view template end
+
+
 // get 
 server.get(`/sayhi`, (req, res)=>{
   res.status(200).json(driver)

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R2W event: <%= eventID; %></title>
+
+<link rel="stylesheet" href="/V2/css/styles.css">
+<style>
+    
+    #qrcode img{
+        width:128px;
+    }
+
+</style>
+
+<script src="/V2/js/qrcode.min.js"></script>
+<script src="/V2/js/jquery.min.js"></script>
+<script src="/V2/js/R2W.js"></script>
+
+</head>
+<body>
+
+<div class="textbox">
+
+    event ID: <%= eventID; %>
+
+ 
+
+<p>
+<h2>Event attributes</h2>
+<div id="event_attributes"></div>
+
+
+</div>
+
+<script>
+//request json for a specific feature
+function get_case_by_id(){
+  var url = `/api/v1/cases/getcase/<%= eventID; %>`;
+  jqxhr = get(url, function (data) {
+    $("#case_attributes").html(JSON.stringify(data));
+  });
+}
+function get_case_event(){
+  var url = `/api/v1/cases/getcaseevent/<%= eventID; %>`;
+  jqxhr = get(url, function (data) {
+    $("#case_events").html(JSON.stringify(data));
+  });
+}
+//get_case_by_id();
+//get_case_event()
+
+</script>
+
+</body>
+</html>
