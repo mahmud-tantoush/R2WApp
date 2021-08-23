@@ -20,7 +20,7 @@ createCaseForm.addEventListener('submit', (e) => {
     e.preventDefault();
     var eMessages = []
 
-    console.log(Number(caseID.value))
+    //console.log(Number(caseID.value))
 
     //check case id is number
     if(Number(caseID.value)){
@@ -56,27 +56,6 @@ createCaseForm.addEventListener('submit', (e) => {
             throw e
         });
     
-        // run the create command in db
-        // var session = driver.session();
-        // session
-        //.run(`create (n:Case ${newCase}) return n`)
-        // .then((result) => {
-        //     //console.log(result.records[0]._fields[0])
-        //     session.close()
-        //     DBlist = []
-        //     result.records.forEach(function(record){
-        //         //console.log(record._fields[0])
-        //         DBlist.push(record._fields[0])
-        //     })
-        // })
-        // .then((result) => {
-        //     console.log(result)
-        //     createCaseForm.innerHTML = "<h6><b>Case Created, go to the <a href='index.html'>graphs page </a> to view</b></h6>"
-        // })
-        // .catch(e => {
-        //     session.close();
-        //     throw e
-        // });
     }
 })
 

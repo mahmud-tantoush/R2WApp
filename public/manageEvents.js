@@ -9,25 +9,18 @@ function normalize(string) {
     }
 
 //get properties for each case in db     var=DBlist
-session
-    .run(`Match (n:Case) return n`)
-    .then((result) => {
-        //console.log(result.records[0]._fields[0])
-        session.close()
-        DBlist = []
-        result.records.forEach(function(record){
-            //console.log(record._fields[0])
-            DBlist.push(record._fields[0])
-        })
-    })
-    .then(() => {   
-        //console.log(DBlist)
+$.ajax({
+    url: '/api/v1/cases/getcases',
+    type: 'GET',
+    success: (result) => {
+        console.log({url: '/api/v1/cases/getcases', type: 'GET'})
+        console.log(result)
+        DBlist = result
         renderListings(DBlist)
-    })
-    .catch(e => {
+}}).catch(e => {
         session.close();
         throw e
-    });
+});
 
 var listingEl = document.getElementById('feature-listing');
 var filterEl = document.getElementById('feature-filter');

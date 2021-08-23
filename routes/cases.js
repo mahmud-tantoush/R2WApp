@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const driver = require('../driver.js');
+const fetch = require('node-fetch');
+const axios = require('axios')
 
 //get
 router.get(`/getcase/:caseID`, (req, res)=>{
@@ -44,23 +46,46 @@ router.get(`/getcases`, (req, res)=>{
 
 //post
 router.post(`/createcase`, (req, res)=>{
+
+  var existingCases = []
     //console.log('/api/v1/getcases link works')
   //var newCase = JSON.parse(JSON.stringify(req.body))
   var newCase = JSON.stringify(req.body)
   var newCase = newCase.replace(/"([^"]+)":/g, '$1:');
 
-  q = `CREATE (n:Case ${newCase}) return n`
-  console.log(q)
   const session = driver.session()
-  session.run(q) 
-    .then(result => {
-      session.close();
-      res.json({sucess: 'True  - new case with properties created'})
-    })
-    .catch(error => {
-      session.close();
-      res.send(error)
-    })
+    
+    session.run(`Match (n:Case) return n`)
+      .then(result => {
+        session.close();
+        result.records.forEach(function(item){
+          //console.log(item._fields[0])
+          existingCases.push(item._fields[0].properties.caseID)
+        })
+        console.log(existingCases)
+        if (existingCases.includes(req.body.properties.caseID)){
+          console.log('Already exisits')
+          res.json(req.body.properties)
+        }
+        //res.json(existingCases)
+      })
+      .catch(error => {
+        session.close();
+        res.send(error)
+      })
+
+  // q = `CREATE (n:Case ${newCase}) return n`
+  // console.log(q)
+  // const session = driver.session()
+  // session.run(q) 
+  //   .then(result => {
+  //     session.close();
+  //     res.json({sucess: 'True  - new case with properties created'})
+  //   })
+  //   .catch(error => {
+  //     session.close();
+  //     res.send(error)
+  //   })
 })
 
 
