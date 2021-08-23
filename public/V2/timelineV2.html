@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+<title>NetworkTimeline</title>
+
+<script src="/V2/js/d3.v4.min.js"></script>
+<script src="/V2/js/jquery.min.js"></script>
+<script src="/V2/js/underscore-min.js"></script>
+
+<script src="/V2/js/R2W.js"></script>
+
+<link rel="stylesheet" href="/V2/css/styles.css">
+
+
+<style>
+
+/*----------------networktimeline specific---------------*/
+.item{
+  fill: #888;
+  opacity:0.5;
+  mix-blend-mode: multiply;
+  
+}
+.item:hover{
+	fill:gold;
+	cursor: pointer;
+}
+
+.tooltip{
+	position: absolute;			
+	text-align: center;			
+	width: 150px;					
+	height: 40px;					
+	padding: 15px;
+	background: #000;
+	font: 11px sans-serif;		
+	color: #fff;
+	border: 0px;		
+	pointer-events: none;			
+	opacity:0;
+    display:table-cell;
+    vertical-align:middle;
+}
+
+/* links and marker on links*/
+.links, .path-links{
+  stroke: #aaa;
+  stroke-width:2;
+  opacity:0.4;
+}
+.links:hover{
+    opacity:1;
+}
+
+#end-arrow, #dot circle{
+    fill: #000;
+}
+
+.links.template{
+  stroke: #888;
+  stroke-dasharray: 2, 5;
+}
+
+
+
+
+line.now{
+	stroke: #000;
+	stroke-width:1;
+	stroke-dasharray: 2,2;
+}
+text.now{
+    font-size:9pt;
+    text-anchor: middle;
+    alignment-baseline:hanging;
+}
+
+svg:hover{
+    cursor:move;
+}
+text.labels{
+	font-size:9pt;
+}
+
+/* status bab86c 88bb00 green 7d7a25 blue 4d8fa8*/
+rect.completed{
+  fill: #7d7a25 ;
+  stroke: #fff;
+}
+rect.ongoing{
+  fill: #ff9900 ;
+  stroke: #fff;
+}
+rect.planned, rect.template{
+  fill: #fff ;
+  stroke: #000;
+  opacity:0.8;
+  mix-blend-mode: normal;
+}
+rect.template{
+  stroke-dasharray: 5;
+}
+
+/* axis */
+.tick .day{
+	font-size:12pt;
+}
+.tick line{
+	stroke: #ccc;
+    stroke-width:1;
+}
+/*---------------d3 responsive---------------*/
+#container{
+  height:300px;
+  overflow: hidden;
+  background: #eee;
+  /*border:1px dashed #000;*/
+}
+.svg-container {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;  /* aspect ratio */
+  vertical-align: top;
+  overflow: hidden;
+}
+.svg-content-responsive {
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+</style>
+
+
+
+
+
+<script>
+
+/////////////////////////////////////
+// D3 timeline EC
+// to move to an external js
+
+var NetworkTimeline = function(containerid, data){
+    var thisGraph = this;
+    thisGraph.data = data;
+    thisGraph.containerid = containerid;
+    
+    
+    
+    thisGraph.svg = d3.select(thisGraph.containerid);
+    //thisGraph.svgWidth = 1000;
+    //thisGraph.svgHeight = 300;
+    
+    thisGraph.set_size();
+
+       
+    thisGraph.div =  d3.select(".tooltip");
+    
+    thisGraph.margin = {top: 60, right: 0, bottom: 0, left: 0};
+    //thisGraph.width = thisGraph.svgWidth - thisGraph.margin.left - thisGraph.margin.right;
+    //thisGraph.height = thisGraph.svgHeight - thisGraph.margin.top - thisGraph.margin.bottom;
+           
+    //store interaction states
+    thisGraph.state = {pointerdown:false}
+
+    //setup axis
+    thisGraph.x = d3.scaleUtc()
+    //thisGraph.x = d3.scaleTime()
+    thisGraph.x.range([thisGraph.margin.left, thisGraph.margin.left+thisGraph.svgWidth]);
+    thisGraph.xAxis = d3.axisTop(thisGraph.x)
+    
+    thisGraph.xAxis
+                    //.tickFormat(d3.timeFormat("%d")) //%Y-%m- //customised in redraw()
+                    .tickSize(-thisGraph.svgHeight)
+                    .ticks(d3.timeMonday.every(1))
+                //  .ticks(d3.timeDay.every(1))
+                
+
+                
+                
+    thisGraph.xaxisGroup = thisGraph.svg.append("g")
+                        .attr("class", "xaxis")
+                        .attr("transform", "translate("+0+"," + (thisGraph.margin.top) + ")")
+    //thisGraph.xaxisGroup.call(thisGraph.xAxis)
+    
+
+    
+    //handle zoom events
+    thisGraph.scaleX = thisGraph.x;
+    thisGraph.currentTransform;
+    
+    thisGraph.zoom = d3.zoom()
+            .extent([[0, 0], [thisGraph.svgWidth, thisGraph.svgHeight]])
+            .scaleExtent([0.3, 5.6])
+            //.translateExtent([[-thisGraph.width*10, -thisGraph.height*20], [thisGraph.width*10, thisGraph.height*20]])
+            .on("zoom",zoomed); 
+        
+    thisGraph.svg.call(thisGraph.zoom);
+    function zoomed() {
+        //console.log("zoomed");
+        if (thisGraph.data.nodes.length > 0){
+            thisGraph.scaleX = d3.event.transform.rescaleX(thisGraph.x);
+            thisGraph.currentTransform = d3.event.transform;
+            thisGraph.redraw();
+        }
+    }
+    
+    //draw a line today (client datetime)
+    thisGraph.svg.append("line").classed("now",true)
+            .attr("marker-start", "url(#dot)")
+            
+    thisGraph.svg.append("text").classed("now",true)
+            .text("TODAY")
+            .attr("y", thisGraph.svgHeight-20)
+            
+
+
+    // define arrow markers for graph links
+    var defs = thisGraph.svg.append('svg:defs');
+        defs.append('svg:marker')
+        .attr('id', 'end-arrow')
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 5)
+        .attr('markerWidth', 10.5)
+        .attr('markerHeight', 10.5)
+        .attr('markerUnits', "userSpaceOnUse")
+        .attr('orient', 'auto')
+        .append('svg:path')
+        .attr('d', 'M0,-5L10,0L0,5');
+     /*
+    // add the X gridlines
+    thisGraph.svg.append("g")			
+          .attr("class", "grid")
+          .attr("transform", "translate(0,0)")
+          .call(thisGraph.make_x_gridlines()
+              .tickSize(-300)
+              .tickFormat("")
+          )
+    */
+}
+// gridlines in x axis function
+/*
+NetworkTimeline.prototype.make_x_gridlines = function() {	
+    var thisGraph = this;	
+    //return d3.axisTop(thisGraph.scaleX).ticks(7)
+    return thisGraph.xAxis
+
+}
+*/
+
+NetworkTimeline.prototype.set_size = function() {
+    var thisGraph = this;
+    //reset sizes
+    //handle axis redraw
+    thisGraph.svgWidth = $(thisGraph.containerid).width();
+    thisGraph.svgHeight = $(thisGraph.containerid).height();
+    
+    thisGraph.svg.attr("preserveAspectRatio", "xMinYMin meet")
+       .attr("viewBox", "0 0 "+thisGraph.svgWidth+" "+thisGraph.svgHeight)
+       .classed("svg-content-responsive", true)
+       
+    
+}
+NetworkTimeline.prototype.resized = function() {
+    console.log("resized")
+    var thisGraph = this;
+    //reset sizes
+    thisGraph.set_size()
+    //handle axis redraw
+    //
+    thisGraph.x.range([thisGraph.margin.left, thisGraph.margin.left+thisGraph.svgWidth]);
+    //thisGraph.xAxis = d3.axisTop(thisGraph.scaleX);
+    
+    thisGraph.scaleX = thisGraph.currentTransform.rescaleX(thisGraph.x)
+    thisGraph.xaxisGroup.call(thisGraph.xAxis.scale(thisGraph.scaleX))
+    
+    thisGraph.zoom.extent([[0, 0], [thisGraph.svgWidth, thisGraph.svgHeight]])
+    
+    //thisGraph.svg.call(thisGraph.zoom.transform, d3.zoomIdentity);
+    thisGraph.redraw();
+}
+
+// Create Event Handlers for mouse
+NetworkTimeline.prototype.handleItemClick = function(d, i) { 
+  try{
+    item_clicked(d); //
+  }
+  catch(e){ 
+    //console.warn(e); 
+    console.warn("item_clicked(d) for handleItemClick not found");
+  }
+}
+NetworkTimeline.prototype.handleItemMouseOver = function(d, i) { 
+    //console.log(d)
+    //tooltip
+    var tooltipObj = d3.select(".tooltip");
+    tooltipWidth = tooltipObj.node().getBoundingClientRect().width;
+    
+    tooltipObj.transition()		
+      .duration(200)		
+      .style("opacity", .9);		
+      
+    tooltipObj.html(d.draw.status.toUpperCase())	
+      .style("left", function(d){
+        if (d3.event.pageX > window.innerWidth-tooltipWidth+10){
+          return (d3.event.pageX-tooltipWidth-10) + "px"
+        }
+        else{
+          return (d3.event.pageX+10) + "px"
+        }
+      })		
+      .style("top", (d3.event.pageY-30) + "px");	
+}
+NetworkTimeline.prototype.handleItemMouseOut = function(d, i) { 
+      var thisGraph = this;
+      //console.log(d.pdf)
+      d3.select(".tooltip").transition()		
+        .duration(200)		
+        .style("opacity", 0);		
+}
+
+NetworkTimeline.prototype.update = function() {
+    var thisGraph = this;
+
+    // return false if there is nothing
+    if (thisGraph.data.nodes.length == 0){
+        return false;
+    }
+
+    //update the document with data
+    
+    //update nodes rect
+    nodeSelect = thisGraph.svg.selectAll(".item").data(thisGraph.data.nodes, function(d){ return d.id;});
+    nodeEnter = nodeSelect.enter().append("rect").classed("item",true)
+                .on("click", thisGraph.handleItemClick)
+                .on("mouseover", thisGraph.handleItemMouseOver)
+                .on("mouseout", thisGraph.handleItemMouseOut)
+    nodeSelect.exit().remove();
+
+    //update nodes label
+    labelSelect = thisGraph.svg.selectAll(".labels").data(thisGraph.data.nodes, function(d){ return d.id;});
+    labelEnter = labelSelect.enter().append("text")
+                                    .classed("labels",true)
+                                    .attr("text-anchor","start")
+                                    .attr("alignment-baseline","middle")
+    labelSelect.exit().remove();
+    
+    //update edges path-links
+    edgeSelect = thisGraph.svg.selectAll(".links").data(thisGraph.data.edges, function(d){ return d.id;});
+    edgeEnter = edgeSelect.enter().append("path").classed("links",true)
+                                    .attr("fill", "none")
+                                    .attr('marker-end', 'url(#end-arrow)')
+                                    .attr('marker-start', 'url(#dot)')
+                                    
+                                    
+    edgeSelect.exit().remove();
+    
+    //Redraw all elements (including updates of attributes where new data might have same id as old data)
+    thisGraph.redraw();
+}
+ 
+NetworkTimeline.prototype.redraw = function() {
+    var thisGraph = this;
+
+    thisGraph.redraw_axis();
+
+    //update existing items
+    
+    //Redraw rectangles
+    thisGraph.svg.selectAll(".item")
+        .sort((a,b) => d3.descending (a.draw.enddate-a.draw.startdate, b.draw.enddate-b.draw.startdate)) //draw big ones first
+        //drawing order: sort the rectangles in the z-axis (smaller units gets hidden behind, limitations where a lot so small units overlaps a big one)
+ 
+        .attr("x", function(d){ 
+            //startdate of the item
+            d.draw.startX = thisGraph.scaleX(d.draw.startdate);
+            
+            return d.draw.startX;
+        })
+        //.attr("y", thisGraph.margin.top)
+        .attr("y", function(d){ 
+            d.draw.y = 150;
+            return d.draw.y;
+        })
+        .attr("height", 50)
+        .attr("width", function (d){
+            //computed scaled duration (enddate-startdate) of the item, need error check for negative when enddate < startdate
+            d.draw.endX = thisGraph.scaleX(d.draw.enddate);
+            
+            return d.draw.endX-d.draw.startX; //note need to check for negative values
+        })
+        .attr("rx", 20)
+        .attr("ry", 20)
+        .attr("class", function (d){ return "item "+d.draw.status;})
+        
+    
+    //Redraw links
+    thisGraph.svg.selectAll(".links")
+        .attr("d", function(d){
+            startnode = thisGraph.find_by_id(thisGraph.data.nodes,d.startNodeId)
+            endnode = thisGraph.find_by_id(thisGraph.data.nodes,d.endNodeId)
+            
+            if (startnode && endnode){
+                x1 = startnode.draw.endX;
+                y1 = startnode.draw.y+25;
+                width1 = startnode.draw.endX-startnode.draw.startX;
+                
+                x2 = endnode.draw.startX;
+                y2 = endnode.draw.y+25;
+                width2 = endnode.draw.endX-endnode.draw.startX;
+                
+                midX = (x2-x1)/2+x1;
+                
+                //pathstr = `M ${x1} ${y1} C ${x1} ${y1-100} ${x2} ${y2-100} ${x2} ${y2}`;
+                //pathstr = `M ${x1-25} ${y1} C ${x1} ${y1-80} ${x2} ${y2-80} ${x2+25} ${y2}`; // [. .] [. .]
+                
+                if (width1 < 50){
+                    xx1 = (width1/2.0)+startnode.draw.startX;
+                }
+                else{
+                    xx1 = x1-25;
+                }
+                if (width2 < 50){
+                    xx2 = (width2/2.0)+endnode.draw.startX;
+                }
+                else{
+                    xx2 = x2+25;
+                }
+                    
+                 pathstr = `M ${xx1} ${y1} C ${xx1} ${y1-80} ${xx2} ${y2-80} ${xx2} ${y2}`;
+                
+                //pathstr = `M ${x1} ${y1} L ${x1+5} ${y1} ${x1+5} ${y1-50} ${x2-5} ${y2-50} ${x2-5} ${y2} ${x2} ${y2}`;
+                return pathstr;
+            }
+            
+            console.log(d);
+            return false;
+            
+        })
+        .attr("class", function (d){ 
+            try{
+                return "links "+d.draw.status;
+            }catch(e){
+                return "links"
+            }
+        })
+    
+    
+    //Redraw text
+    thisGraph.svg.selectAll(".labels")
+			.attr("x", 
+				function(d){
+					return d.draw.startX;
+				})
+			.attr("y", 
+				function(d){
+					return d.draw.y+60;
+				})
+			.text(function(d){ return d.id + "-" + d.properties.Label;}) //not ideal but force redraw when label changes
+    
+    //redraw line now
+    today = thisGraph.scaleX(new Date().getTime());  //use 1622826495381 for test
+    //console.log(today);
+    if (!isNaN(today)){
+        thisGraph.svg.selectAll("line.now ")
+            .attr("x1", today)
+            .attr("y1", thisGraph.margin.top)
+            .attr("x2", today)
+            .attr("y2", thisGraph.svgHeight-25)
+            
+        thisGraph.svg.selectAll("text.now ") 
+            .attr("x", today)
+    }
+    
+}//end update
+NetworkTimeline.prototype.redraw_axis = function() {
+    var thisGraph = this;
+    //LOD on the axis (note issue on mobile
+    var day_to_pixel = thisGraph.scaleX(86400000)-thisGraph.scaleX(0) // 1 day in pixels
+    var week_to_pixel = day_to_pixel*7 // 7 days in pixels
+    
+    if (day_to_pixel < 30){
+        //show week
+        if (week_to_pixel < 40){
+            //show month
+            thisGraph.xAxis.ticks(d3.utcMonth.every(1))
+        }
+        else{
+            thisGraph.xAxis.ticks(d3.utcMonday.every(1))
+        }
+    }else{
+        thisGraph.xAxis.ticks(d3.utcDay.every(1))
+    }
+    //scale based on current zoom transform
+    thisGraph.xaxisGroup.call(thisGraph.xAxis.scale(thisGraph.scaleX))
+    
+    shown_year = new Set()
+    
+    //redraw the tick labels
+    thisGraph.svg.selectAll('.xaxis g text').each(function (d){
+        var el = d3.select(this);
+        el.text('');
+        year = d3.timeFormat("%Y")(d)
+        month = d3.timeFormat("%b")(d)
+        day = d3.timeFormat("%d")(d)
+        
+        if (!(shown_year.has(year))) {
+            shown_year.add(year); 
+            el.append('tspan').classed("year",true).text(year).attr('x', 0).attr('y', '-42');  
+        }else{ year = " ";}
+        
+         
+        if (week_to_pixel < 40){
+            el.append('tspan').classed("day",true).text(month).attr('x', 0).attr('y', '-22');
+            }
+        else{
+            el.append('tspan').classed("day",true).text(day).attr('x', 0).attr('y', '-22');      
+            el.append('tspan').text(month).attr('x', 0).attr('dy', '15');
+        }
+    });
+
+    /*
+    function(e){
+       if (week_to_pixel < 40){
+        return " ";
+       }
+       else{
+        return day;
+       }
+    }
+    */
+}
+
+
+NetworkTimeline.prototype.view_extent = function() {
+    var thisGraph = this;
+    //find all applicable date values
+    var allvalues = [];
+    thisGraph.data.nodes.forEach(function (d, i){
+        allvalues.push(d.draw.startdate)
+        allvalues.push(d.draw.enddate)
+    })
+    //console.log(allvalues)
+    
+    if (allvalues.length){
+        //rescale axis to capture range in data
+        //thisGraph.x.domain(d3.extent(allvalues))
+        thisGraph.x.domain([ addDays(d3.min(allvalues), -1), addDays(d3.max(allvalues),1)] )
+        //.range([thisGraph.margin.left, thisGraph.margin.left+thisGraph.svgWidth]);
+        //thisGraph.scaleX = d3.event.transform.rescaleX(thisGraph.x);
+        //thisGraph.xAxis = d3.axisTop(thisGraph.scaleX);
+        
+        
+        thisGraph.svg.call(thisGraph.zoom.transform, d3.zoomIdentity); // resets zoom/pan transform
+        thisGraph.redraw_axis()
+    }
+    
+}
+
+NetworkTimeline.prototype.view_today_extent = function() {
+    var thisGraph = this;
+    
+    now = new Date().getTime()
+    offset = 86400000*14 ; // +/- 14 days, 86400000* n days
+    thisGraph.x.domain([now-offset,now+offset]) 
+
+    thisGraph.svg.call(thisGraph.zoom.transform, d3.zoomIdentity); // resets zoom/pan transform
+    
+    thisGraph.redraw_axis()
+}
+NetworkTimeline.prototype.find_by_id = function(arr,id){
+  return _.find(arr,function(d){ return d.id == id;});
+}
+ 
+ 
+</script>
+
+
+<div id="container" >
+    <div class="svg-container">
+        <svg id="mainsvg" width="100%" height="300px">
+         <!-- simple dot marker definition -->
+        <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" markerUnits="userSpaceOnUse">          
+        <circle cx="5" cy="5" r="5" fill="#000000" />
+        </marker>
+        
+        </svg>
+    </div>
+</div>
+<div class="tooltip"></div>
+
+
+<script>
+data = {
+    nodes:[
+        {"id":158,"labels":["Event"],"properties":{"editor":"eric","Label":"Generic","dateLogged":"Sat Jun 05 2021 17:01:01 GMT+0100 (British Summer Time)","Completed":"false","Expected_Duration":"2","Notes":"","eventStartDate":"2021-06-16"}},
+        {"id":159,"labels":["Event"],"properties":{"editor":"","Label":"Generic","dateLogged":"Sat Aug 21 2021 11:16:33 GMT+0100 (British Summer Time)","Completed":"false","Expected_Duration":"10","Notes":"test","eventStartDate":"2021-07-14"}}
+    ],
+    edges:[
+        {"id":169,"startNodeId":158,"endNodeId":159,"type":"NewAction","properties":{}}
+    ]
+}
+
+
+function process_data(data){
+
+    //remove nodes without label "Event" 
+    //_.filter(tmp.nodes,function(d){return d.labels[0] == "Event";})
+    //_.filter(tmp.nodes,function(d){return _.contains(d.labels,"Event");})
+
+    //remove edges without id in output
+    //_.filter(tmp.edges,function(d){ return (_.find(tmp.nodes,{id:d.startNodeId}) && _.find(tmp.nodes,{id:d.endNodeId}))});
+    
+    filtered_nodes = _.filter(data.nodes,function(d){return _.contains(d.labels,"Event");})
+    filtered_edges = _.filter(data.edges,function(d){ return (_.find(filtered_nodes,{id:d.startNodeId}) && _.find(filtered_nodes,{id:d.endNodeId}))});
+    
+    output = {"nodes":filtered_nodes,"edges":filtered_edges}
+    
+    for (var i in output.nodes){
+    
+        var startdate = get_date_from_str(output.nodes[i].properties.eventStartDate);
+        var enddate = addDays(startdate, Number(output.nodes[i].properties.Expected_Duration));
+        var status = "ongoing";
+        
+        if ("Completed" in output.nodes[i].properties){
+        
+            if (output.nodes[i].properties.Completed == "true"){
+                status = "completed";
+            }   
+        }
+        output.nodes[i]["draw"] = {startdate:startdate, enddate:enddate, status:status }
+    }
+    
+    //remove if not event
+    
+    
+    
+    return output;
+}
+</script>
+
+
+
+
+<script>
+
+timeline_data = process_data(data);
+/*
+there is a need to pre-process the data for a timeline
+
+node
+
+
+eventStartDate (Str->Date) //work with dates as YYYY-MM-DD (default for html date input)
+Expected_Duration (Str->Number)
+
+Completed (Str->true/false)
+CompletedDate
+
+Get duration in days from 2 dates
+"duration": ((get_date_from_str("2021-07-26")-get_date_from_str("2021-07-16"))/86400000) //days
+
+Compute end date from start date and duration (10 is the number of days)
+get_date_from_str("2021-07-26")+86400000*10
+
+pre-process the data add data essential to drawing
+status
+"completed" is where the node data says it is completed
+"ongoing" when the startdate <= now
+"planned" when the startdate > now
+
+
+ctl.data = process_data(tmp);
+ctl.update()
+ctl.view_extent()
+
+
+*/
+
+
+
+timelinedata = {
+    nodes:[
+        {
+            "id":158,
+            "properties":{"Label":"Generic","Completed":"true"},
+            "draw":
+            {
+                "startdate":get_date_from_str("2021-06-16"), 
+                "enddate":get_date_from_str("2021-06-26"),
+                "status":"completed"
+            }
+        },
+        {
+            "id":159,
+            "properties":{"Label":"Generic"},
+            "draw":
+            {
+                "startdate":get_date_from_str("2021-07-16"), 
+                "enddate":get_date_from_str("2021-07-17"),
+                "status":"ongoing"
+            }
+        },
+        {
+            "id":160,
+            "properties":{"Label":"Generic"},
+            "draw":
+            {
+                "startdate":get_date_from_str("2021-06-23"), 
+                "enddate":get_date_from_str("2021-07-22"),
+                "status":"ongoing"
+            }
+        },
+        {
+            "id":161,
+            "properties":{"Label":"Generic"},
+            "draw":
+            {
+                "startdate":get_date_from_str("2021-07-25"), 
+                "enddate":get_date_from_str("2021-08-22"),
+                "status":"ongoing"
+            }
+        },
+        {
+            "id":162,
+            "properties":{"Label":"Generic"},
+            "draw":
+            {
+                "startdate":get_date_from_str("2021-09-11"), 
+                "enddate":get_date_from_str("2021-09-22"),
+                "status":"planned"
+            }
+        },
+        {
+            "id":163,
+            "properties":{"Label":"Generic"},
+            "draw":
+            {
+                "startdate":get_date_from_str("2021-10-01"), 
+                "enddate":get_date_from_str("2021-10-10"),
+                "status":"template"
+            }
+        }
+    ],
+    edges:[
+        {"id":155,"startNodeId":158,"endNodeId":160,"type":"NewAction","properties":{}},
+        {"id":169,"startNodeId":158,"endNodeId":161,"type":"NewAction","properties":{}},
+        {"id":111,"startNodeId":159,"endNodeId":161,"type":"NewAction","properties":{}},
+        {"id":170,"startNodeId":161,"endNodeId":162,"type":"NewAction","properties":{}},
+        {"id":170,"startNodeId":162,"endNodeId":163,"type":"NewAction","properties":{},
+            "draw":
+            {
+                "status":"template"
+            }
+        
+        }
+    
+    ]
+
+}
+
+
+placeholder = {
+        "nodes":[
+        {
+            "id":1,
+            "properties":{"Label":"Loading"},
+            "draw":
+            {
+                "startdate":get_date_from_str("2020-12-01"), 
+                "enddate":get_date_from_str("2021-01-01"),
+                "status":"template"
+            }
+        },
+        {
+            "id":2,
+            "properties":{"Label":"Loading"},
+            "draw":
+            {
+                "startdate":get_date_from_str("2021-02-01"), 
+                "enddate":get_date_from_str("2021-03-01"),
+                "status":"template"
+            }
+        }
+        ],
+        "edges":[
+            {"id":1,"startNodeId":1,"endNodeId":2,"type":"Action","properties":{},
+                "draw":
+                {
+                    "status":"template"
+                }
+            
+            }
+        ]
+    }
+
+var ctl = new NetworkTimeline("#mainsvg",placeholder);
+ctl.update()
+ctl.view_extent()
+
+/*
+ctl.data = timelinedata; //timelinedata for testing, use timeline_data for preprocess
+ctl.update()
+ctl.view_extent()
+
+
+
+*/
+
+//handle resize event
+window.addEventListener('resize', function (){ctl.resized()} );
+
+</script>
+
+<!-- <div style="position:relative"> -->
+<!-- <div style="position:absolute;top:-40px;left:10px"> -->
+<button onclick="ctl.view_today_extent()">Today</button>
+<button onclick="ctl.view_extent()">View extent</button>
+<!-- </div> -->
+<!-- </div> -->
+
+<script>
+
+//control this in another file for item_clicked(d)
+function item_clicked(d)
+{
+    console.log(d);
+}
+</script>

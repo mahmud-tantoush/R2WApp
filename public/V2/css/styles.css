@@ -1,0 +1,129 @@
+@font-face {
+  font-family: Roboto;
+  src: url(/V2/fonts/Roboto/Roboto-Regular.ttf);
+}
+
+.debug{
+    background:#888;
+    color:#fff;
+    display:none;
+}
+
+
+/*General styles */
+html,body{
+	margin:0;
+	width:100%;
+	height:100%;
+}
+* { 
+    box-sizing: border-box ; 
+    font-family: Roboto, sans-serif;
+}
+
+.paper{
+    width:80%;
+    max-width:1280px;
+    margin: 0 auto;
+    padding: 30px 0 0 0;
+}
+
+.textbox{
+    padding:20px;
+}
+
+.panel2{
+    float:left;
+    width:50%;
+}
+
+/* MOBILE */
+@media only screen and (max-width: 600px) {
+    .panel2{
+        width:100% !important;
+    }
+    .FForm input, .FForm textarea{
+        width:100% !important;
+    }
+    .paper{
+        width:100%;
+        padding:10px 20px;
+    }
+}
+@media only screen and (max-width: 800px) {
+    .panel2{
+        width:100% !important;
+    }
+
+}
+
+
+/* form */
+input, textarea,button{
+    padding:8px;
+    font-size: 1.1em;
+    background:#eee;
+    border:0;
+    border-radius:5px;
+}
+button{
+    background:#fff;
+    padding:10px 15px;
+    border:2px solid #888;
+    border-radius:5px;
+}
+button:hover{
+    background:gold;
+    cursor:pointer;
+}
+label{
+    padding: 8px 0;
+}
+.FForm input, .FForm textarea{
+    width:80%;
+}
+.FForm{
+    width:100%;
+}
+.submit_container{
+    display:none;
+    text-align: right;
+}
+fieldset { 
+    margin: 0; 
+    padding:0;
+    border:0;
+} 
+
+fieldset legend { 
+    font-weight: bold; 
+    font-size: 16px; 
+    margin:0;
+    padding: 0 0 0px 0;
+} 
+
+fieldset label { 
+    width: 20%; 
+    float: left; 
+    margin:0px; 
+    vertical-align: top;
+} 
+
+fieldset ol { 
+    list-style:none; 
+    margin: 0;
+    padding: 0;} 
+
+fieldset ol li { 
+    float:left; 
+    width:100%; 
+    padding-bottom:10px; 
+    padding-left: 0; 
+    margin-left: 0; } 
+
+fieldset ol li input, 
+fieldset ol li select, 
+fieldset ol li textarea { 
+    margin-bottom: 0px; 
+} 
+

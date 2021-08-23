@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+<title>
+R2W working document V2
+</title>
+<Script src="js/jquery.min.js"></script>
+
+<Script src="js/R2W.js"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+
+<style>
+
+
+
+/* working only */
+#result{
+  width:100%;
+  height:80%;
+}
+.panel{
+  float:left;
+  width:50%;
+  height:100vh;
+}
+</style>
+<body>
+
+
+<div class="panel" style="overflow:hidden;overflow-y:scroll">
+<div class="textbox">
+
+<h1>R2W working document</h1>
+api/v1
+<br>
+<a href="https://docs.google.com/spreadsheets/d/1cwHtcPcrVj0kQ3q24R3_gFuaWVtwL6Uz/edit#gid=1333953872">working spreadsheet for end-points</a>
+
+<hr>
+<h3>Templates</h3>
+using ejs template (npm install ejs)
+<br>
+<a href="/view/case/20000">view/case/[caseID]</a>
+<br>
+<a href="/view/event/10000">view/event/[eventID]</a> (for ajax load)
+<br>
+<a href="/view/20000/10000">view/[caseID]/[eventID]</a> (for full case-event)
+
+<hr>
+
+caseID: <input id="caseid" value="10000" onchange="makeQR();makelink()">
+<div id="linkDiv"></div>
+
+
+<hr>
+generate QR code with caseID
+
+
+<script src="js/qrcode.min.js"></script>
+<div id="qrcode"></div>
+<script type="text/javascript">
+var data = "view/case/"+$("#caseid").val();
+var qrcode = new QRCode("qrcode", {text:data, width: 128, height: 128});
+
+function makeQR(){
+    //$("#qrcode").html('')
+    var data = "view/case/"+$("#caseid").val();
+    qrcode.clear();
+    qrcode.makeCode(data);
+}
+makeQR()
+function makelink(){
+var caseid = $("#caseid").val();
+var data = "/view/case/"+caseid;
+$("#linkDiv").html(`<a href=${data}>${caseid}</a>`);
+}
+
+</script>
+<p>
+
+Scan with <a href="qr.html">QR code reader</a> to view case (works best on a mobile device)
+
+
+<hr>
+
+<h2>Case specific</h2>
+
+<h4>List all cases [GET] <button onclick="get('/api/v1/cases/getcases');show_all_cases()">try</button></h4>
+
+<a href="/api/v1/cases/getcases">example</a>
+
+<script>
+function show_all_cases(){
+  var url = `/api/v1/cases/getcases`;
+  jqxhr = get(url,_show_all_cases);
+}
+function _show_all_cases(data){
+    var htmlStr = ""
+    $.each(data, function(i,d){
+        htmlStr += `<button onclick='setCurrentCase("${d.properties.caseID}");'>`;
+        htmlStr += d.properties.caseID; //aplicant, phsVolunteer, notes, Location, dateLogged
+        console.log(d.properties)
+        htmlStr += "</button>";
+    });
+
+    $("#all_cases").html(htmlStr);
+}
+function setCurrentCase(caseID){
+    $("#caseid").val(caseID)
+    makeQR();
+    makelink();
+}
+
+
+</script>
+<div id="all_cases"></div>
+
+
+
+
+<script>
+
+</script>
+
+<h4>Get case by caseID [GET] <button onclick="get_case_by_id()">try</button></h4>
+(attributes within a case only)
+
+<a href="/api/v1/cases/getcase/10000">example</a>
+
+<h4>Add a case [POST]</h4>
+note: also need to check and show if a case already exists
+<p>
+/api/v1/cases/createcase
+<p>
+new caseID: <input id="newcaseid" value="" placeholder="type here" onkeyup="check_duplicate_caseid()"><span id="duplicate_caseid"></span>
+<br>
+<button onclick="new_case()">Add</button>
+<script>
+function new_case(){
+  var url = `/api/v1/cases/createcase`;
+  var id = $("#newcaseid").val();
+  if (id){
+      data = {caseID: id, applicant: 'Applicant', Location: 'Location',phsVolunteer: 'PHS ', dateLogged : 'Fri Aug 20 2021 16:51:25 GMT+0100 (British Summer Time)', notes : 'note'}
+      jqxhr = post(url,data,inspectJSON);
+  }
+}
+function check_duplicate_caseid(){
+    var id = $("#newcaseid").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,show_duplicate_caseid);
+    }
+}
+function show_duplicate_caseid(data){
+    if (Number(data) == 0){
+        $("#duplicate_caseid").html("OK");
+    }else{
+        $("#duplicate_caseid").html("caseID already exists - view case?");
+    }
+}
+
+function caseexists(){
+    var id = $("#newcaseid").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,inspectJSON);
+    }else{
+        $("#newcaseid").focus()
+    }
+}
+</script>
+
+<h4>Check if a caseID already exists <button onclick="caseexists()">try</button></h4>
+/api/v1/cases/caseexists/${id}
+
+<h4>Edit attributes within a case [POST]</h4>
+note: keep existing properties, update the ones from post + do not update certain keys e.g. caseID
+
+
+<h4>View all events by caseID [GET] <button onclick="get_caseevent_by_id()">try</button>
+</h4>
+/api/v1/cases/getcaseevent/${id}
+<br>
+<a href="http://eric.myvnc.com/app/n4j/timeline.html?id=10000">timeline view of case-events (php-based prototype only)</a><br>
+<a href="http://192.168.1.200/app/n4j/timeline.html?id=10000">timeline view of case-events (php-based prototype only) [local network only]</a><br>
+<a href="caseevent_timeline.html?id=10000">timeline view of case-events (view only, migrating to new backend)</a>
+
+
+<hr>
+
+<h2>Event specific</h2>
+
+<h4>View event by eventID [GET]</h4>
+
+<h4>Add event to case [POST]</h4>
+
+<h4>Edit event by eventID [POST]</h4>
+
+<h4>Delete event by eventID [GET]</h4>
+
+<h4>Add relation between events [POST]</h4>
+
+<h4>Delete relation between events [GET]</h4>
+
+
+<hr>
+
+
+<h2>Date time utilty</h2>
+
+get_timestamp_from_str(datestr)<br>
+get_date_from_str(datestr)<br>
+
+<textarea id="test_date_formats" style="width:100%;height:300px">
+2021-06-16
+16-06-2021
+06-16-2021
+06/16/2021
+16/06/2021
+Sat Jun 05 2021 17:01:01 GMT+0100 (British Summer Time)
+</textarea>
+<button onclick="test_date_formats()">check conversion</button>
+
+<script>
+
+
+function test_date_formats(){
+    var test = $("#test_date_formats").val().trim().split("\n");
+    
+    outputs = []
+    for(i in test){
+        var datestr = test[i]
+        outputs.push({
+                    datestr:datestr, 
+                    datetimeObj: get_date_from_str(datestr), 
+                    timestamp: get_timestamp_from_str(datestr)
+                    })
+
+    }
+    inspectJSON(outputs)
+}
+
+
+</script>
+
+<!--
+<hr>
+
+<h2>Generic test</h2>
+<button onclick="post_case_by_id()">test post request</button>
+
+<p>
+<pre>
+server.use(express.json()); //in server.js
+
+//post in cases.js
+router.post(`/post`, (req, res)=>{
+    console.log(req.body);      // your JSON
+    res.send(req.body);    // echo the result back
+})
+</pre>
+-->
+
+</div>
+</div>
+
+
+<div class="panel">
+Server response:<br>
+<textarea id="result"></textarea>
+</div>
+
+
+
+
+<script>
+
+//request json for a specific feature
+function get_case_by_id(){
+  var id = $("#caseid").val();
+  var url = `/api/v1/cases/getcase/${id}`;
+  jqxhr = get(url,inspectJSON);
+}
+
+function get_caseevent_by_id(){
+  var id = $("#caseid").val();
+  var url = `/api/v1/cases/getcaseevent/${id}`;
+  jqxhr = get(url,inspectJSON);
+}
+
+//process the return json for a specific feature in the UI
+function inspectJSON(data){
+  console.log(data);
+  
+  $("#result").html(JSON.stringify(data));
+}
+
+
+
+
+//
+function post_case_by_id(){
+  var id = $("#caseid").val();
+  //var url = `http://192.168.1.200/app/test/post.php`;
+  var url = `/api/v1/post`;
+  
+  data = {"id":id}
+  jqxhr = post(url,data,inspectJSON);
+  
+}
+
+/*
+//moved to R2W.js
+//////////////////////////////////////
+//fire a get request, returns jqxhr for promise
+function get(url,result_function){
+  var jqxhr = $.ajax( {
+      type:"GET",
+      url:url
+    } )
+    .done(function(d) {
+      if (result_function){
+        result_function(d);
+      }
+      else{
+        inspectJSON(d)
+      }
+    })
+    .fail(function() {
+      console.error( "Error get:" + url );
+    })
+  return jqxhr;
+}
+//////////////////////////////////////
+//fire a post request, returns jqxhr for promise
+function post(url,result_function,data){
+  //console.log(data);
+  var jqxhr = $.ajax( {
+      type:"POST",
+      url:url,
+      data:JSON.stringify(data),
+      contentType:"application/json",
+      dataType: "json"
+    } )
+    .done(function(d) {
+      if (result_function){
+        result_function(d);
+      }
+      else{
+        inspectJSON(d)
+      }
+    })
+    .fail(function() {
+      console.error( "Error get:" + url );
+    })
+  return jqxhr;
+}
+//////////////////////////////////////
+*/
+
+</script>
+
+
+</body>
+</html>
