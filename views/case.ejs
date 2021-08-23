@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R2W case: <%= caseID; %></title>
+
+<link rel="stylesheet" href="/V2/css/styles.css">
+<style>
+    
+    #qrcode img{
+        width:128px;
+        margin: 0 auto;
+    }
+    @media only screen and (max-width: 800px) {
+        #qrcode{
+          display:none;
+        }
+    }
+</style>
+
+<script src="/V2/js/qrcode.min.js"></script>
+<script src="/V2/js/jquery.min.js"></script>
+<script src="/V2/js/R2W.js"></script>
+
+</head>
+<body>
+
+<div class="paper">
+
+<h1>
+Case ID: <%= caseID; %>
+</h1>
+
+    <div class="panel2">
+        <h2>Case attributes</h2>
+        <div id="case_attributes" class="FForm"></div>
+        
+        <div class="submit_container">
+            <span id="update_case_status"></span>
+            <button onclick="update_case_record()">Update record</button>
+        </div>
+        
+        <div id="case_attributes_debug" class="debug"></div>
+    </div>
+    <div class="panel2">
+        <div id="qrcode"></div>
+    </div>
+
+</div>
+
+<div class="paper" style="clear:both;">
+
+    <h2>Case events</h2>
+
+</div>
+
+<div id="case_events"></div>
+
+<div class="paper">
+
+    <div id="case_events_debug" class="debug"></div>
+
+
+    <h2>Add event</h2>
+
+</div>
+
+<script>
+//caseID exists?
+function check_case_exist(){
+    var url = `/api/v1/cases/caseexists/<%= caseID; %>`;
+    jqxhr = get(url,function (data){
+        
+        if(data == 0){
+            alert("case not found");
+            //switch to editor
+            
+        }else{
+            get_case_by_id();
+            get_case_event();
+            makeQR();
+        }
+    });
+}
+//request json for a specific feature
+function get_case_by_id(){
+  var url = `/api/v1/cases/getcase/<%= caseID; %>`;
+  jqxhr = get(url, function (data) {
+    // $("#case_attributes_debug").html(JSON.stringify(data[0]._fields[0].properties));
+    
+    $("#case_attributes").html(makeform(data,[
+        {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
+        {key:"applicant",label:"Applicant",type:"text",placeholder:"Internal identifier"},
+        {key:"Location",label:"Location",type:"text",placeholder:"Municipality"},
+        {key:"notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"},
+        {key:"dateLogged",label:"dateLogged",type:"hidden"},
+        {key:"caseID",label:"caseID",type:"hidden"}
+    ]));
+    
+    $(".submit_container").show();
+    $("#case_attributes_debug").html(JSON.stringify(data));
+  });
+}
+function get_case_event(){
+  var url = `/api/v1/cases/getcaseevent/<%= caseID; %>`;
+  jqxhr = get(url, function (data) {
+    $("#case_events_debug").html(JSON.stringify(data));
+  });
+}
+function makeQR(){
+    var data = "view/case/<%= caseID; %>";
+    new QRCode("qrcode", {text:data, width: 128, height: 128});
+    console.log(data);
+}
+function update_case_record(){
+    inputs = parseform("#case_attributes .editor");
+    console.log(inputs);
+    if (inputs.status){
+        $("#update_case_status").html("updating");
+        xhr = post('/api/v1/cases/updatecase/<%= caseID; %>',inputs.param,function(d){
+            console.log(d);
+            if ("status" in d){
+                if(d.status){
+                    $("#update_case_status").html(`updated`);
+                }
+            }else{
+                $("#update_case_status").html("error");
+            }
+        })
+        
+    }
+    
+    
+}
+
+
+
+function load_timeline(){
+    $.ajax({
+        url: '/V2/timelineV2.html',
+        cache: false,
+        dataType: "html",
+        success: function(data) {
+            $("#case_events").html(data);
+            
+            var url = `/api/v1/cases/getcaseevent/<%= caseID; %>`;
+            jqxhr = get(url, function (data) {
+                tmp = process_data(data);
+                if (tmp.nodes.length > 0){
+                    ctl.data = tmp;
+                    ctl.update();
+                    ctl.view_extent();
+                }
+            });
+        }
+    });
+}
+
+// on load
+check_case_exist();
+load_timeline();
+
+</script>
+
+</body>
+</html>
