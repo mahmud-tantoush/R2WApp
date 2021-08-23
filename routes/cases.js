@@ -4,11 +4,11 @@ const driver = require('../driver.js');
 
 //general utility: converts identify to number in javascript
 function toNumber({ low, high }) {
-let res = high
-for (let i = 0; i < 32; i++) {
-  res *= 2
-}
-return low + res
+    let res = high
+    for (let i = 0; i < 32; i++) {
+      res *= 2
+    }
+    return low + res
 }
 
 
@@ -23,7 +23,7 @@ router.get(`/getcase/:caseID`, (req, res)=>{
       .then(result => {
         //console.log(result)
         session.close();
-        //res.json(result.records)
+        // res.json(result.records)
         res.json(result.records[0]._fields[0].properties)
       })
       .catch(error => {
@@ -62,7 +62,7 @@ router.get(`/caseexists/:caseID`, (req, res)=>{
     console.log(q)
     session.run(q) 
       .then(result => {
-        console.log(result)
+        //console.log(result)
         session.close();
         count_of_caseID = toNumber(result.records[0]._fields[0]);
         res.json(count_of_caseID)
@@ -72,6 +72,40 @@ router.get(`/caseexists/:caseID`, (req, res)=>{
         res.send(error)
       })
 })
+
+//post
+router.post(`/updatecase/:caseID`, (req, res)=>{
+    //console.log('/api/v1/getcases link works')
+    //var newCase = JSON.parse(JSON.stringify(req.body))
+    var param = req.body;
+    delete param['caseID']
+    
+    var caseID = req.params.caseID; //note: if the caseID does not exist, no changes in n4j
+    var tmp = []
+    var setStr = "";
+    for (var key in param){
+        tmp.push(`n.${key} = "${param[key]}"`) //force all as string, we will need to check these to avoid special characters
+    }
+    if (tmp.length){
+        setStr = "SET "+ tmp.join(",");
+        
+        q = `MATCH (n) WHERE n.caseID = "${caseID}" ${setStr}`;
+        console.log(q)
+        
+        const session = driver.session()
+        session.run(q) 
+        .then(result => {
+            session.close();
+            res.json({status: 1, message: `Update case record: ${caseID}`})
+        })
+        .catch(error => {
+          session.close();
+          res.send(error)
+        })
+    }
+  
+})
+
 
 //post
 router.post(`/createcase`, (req, res)=>{
