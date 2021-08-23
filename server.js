@@ -18,26 +18,24 @@ const server = express()
 
 server.use(express.static(path.join(__dirname, 'public')))
 
-server.use(function (req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept'
-    );
-    next();
-});
+//middleware example
+// server.use(function (req, res, next) {
+//     res.header('Access-Control-Allow-Origin', '*');
+//     res.header(
+//         'Access-Control-Allow-Headers',
+//         'Origin, X-Requested-With, Content-Type, Accept'
+//     );
+//     next();
+// });
 
 server.use(cors())
 server.use(express.json());
 
 const cases_api = require('./routes/cases');
-
 server.use('/api/v1/cases', cases_api);
 
-server.get('/', (req, res)=>{
-  //res.json(products) //serves raw Json and seeds to endpoint
-  res.send('<h1>Home page </h1><a href="/api/products" >Products</a>')
-})
+const events_api = require('./routes/events');
+server.use('/api/v1/events', events_api);
 
 ///////////// view template: npm install ejs
 server.set('view engine', 'ejs')
@@ -50,45 +48,56 @@ server.get(`/view/event/:eventID`, (req, res)=> {
 })
 ///////////// view template end
 
-
-// get 
-server.get(`/sayhi`, (req, res)=>{
-  res.status(200).json(driver)
-  console.log('hi')
-})
-
-// API not working
-//load data into server
-server.get('/loaddata', (req, res) =>  {
-  let session = driver.session()
-  let q = `CALL apoc.help('text')`
-  //`call apoc.import.graphml('R2W.graphml', {useTypes: true, readLabels: true})`
-  console.log(q)
-  session.run(q) 
-  .then(() => {
-    console.log('got to line 107 in server.js')
-    //console.log(result)
-    session.close();
-    res.json({templateDataLoadedSucess: true})
-  })
-  .catch(error => {
-    session.close();
-    res.json(error)
-    console.log(error)
-  })
-});
+// // API not working - design to load temaplte data
+// //load data into server
+// server.get('/loaddata', (req, res) =>  {
+//   let session = driver.session()
+//   let q = `CALL apoc.help('text')`
+//   //load temaplte data
+//   //`call apoc.import.graphml('R2W.graphml', {useTypes: true, readLabels: true})`
+//   console.log(q)
+//   session.run(q) 
+//   .then(() => {
+//     session.close();
+//     res.json({templateDataLoadedSucess: true})
+//   })
+//   .catch(error => {
+//     session.close();
+//     res.json(error)
+//     console.log(error)
+//   })
+// });
 
 //query end point
 // pass query with spaces encoded as %20
-server.get(`/api/v1/query/:querystring`, (req, res)=>{
+// server.get(`/api/v1/query/:querystring`, (req, res)=>{
+//   //console.log('/api/v1/getcase/:case link works')
+//   console.log(req.params)
+//   let session = driver.session()
+//   q = `${req.params.querystring}`
+//   console.log(q)
+//   session.run(q) 
+//     .then(result => {
+//       //console.log(result)
+//       session.close();
+//       res.json(result.records)
+//     })
+//     .catch(error => {
+//       session.close();
+//       res.send(error)
+//     })
+// })
+
+//example: http://localhost:5050/api/v1/query/querystring?query=Match (n) return n limit 10
+server.get(`/api/v1/query/querystring`, (req, res)=>{
   //console.log('/api/v1/getcase/:case link works')
-  console.log(req.params)
+  console.log(req.query)
+  const query = req.query.query
   let session = driver.session()
-  q = `${req.params.querystring}`
+  q = query
   console.log(q)
   session.run(q) 
     .then(result => {
-      //console.log(result)
       session.close();
       res.json(result.records)
     })
