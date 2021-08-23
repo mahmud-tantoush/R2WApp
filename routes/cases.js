@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const driver = require('../driver.js');
-const fetch = require('node-fetch');
-const axios = require('axios')
 
-//general utility: converts identify to number in javascript
+//general utility: converts identity to number in javascript
 function toNumber({ low, high }) {
     let res = high
     for (let i = 0; i < 32; i++) {
@@ -12,7 +10,10 @@ function toNumber({ low, high }) {
     }
     return low + res
 }
-
+//general utility: converts json to n4j format
+function process_json_n4j(jsondata){
+    return JSON.stringify(jsondata).replace(/"([^"]+)":/g, '$1:');
+}
 
 //get
 router.get(`/getcase/:caseID`, (req, res)=>{
@@ -98,21 +99,141 @@ router.post(`/updatecase/:caseID`, (req, res)=>{
         session.run(q) 
         .then(result => {
             session.close();
-            res.json({status: 1, message: `Update case record: ${caseID}`, data: param })
+            res.json({status: 1, message: `Update case record: ${caseID}`})
         })
         .catch(error => {
           session.close();
           res.send(error)
         })
     }
-  
+})
+
+//post
+//move this to event?
+//Update attributes in an Event
+router.post(`/updateevent/:eventID`, (req, res)=>{
+    //console.log('/api/v1/getcases link works')
+    //var newCase = JSON.parse(JSON.stringify(req.body))
+    var param = req.body;
+    
+    var nID = req.params.eventID; //note: this uses the actual internal id, may be problematic
+    var tmp = []
+    var setStr = "";
+    for (var key in param){
+        tmp.push(`n.${key} = "${param[key]}"`) //force all as string, we will need to check these to avoid special characters
+    }
+    if (tmp.length){
+        setStr = "SET "+ tmp.join(",");
+        
+        q = `MATCH (n) WHERE ID(n) = ${nID} ${setStr}`;
+        console.log(q)
+        
+        const session = driver.session()
+        session.run(q) 
+        .then(result => {
+            session.close();
+            res.json({status: 1, message: `Update event record: ${nID}`})
+        })
+        .catch(error => {
+          session.close();
+          res.send(error)
+        })
+    }
+})
+
+//post
+//move this to event?
+//Add a new Event to a Case by caseID
+router.post(`/addevent/:caseID`, (req, res)=>{
+    
+    var caseID = req.params.caseID;
+    var param = process_json_n4j(req.body);
+
+/*
+    q = `
+MATCH (a) where a.caseID = '20001'
+MERGE (b:Event 
+{
+    Label: "Nal Committee Formation",
+    Completed: "true",
+    eventStartDate: "2020-01-08",
+    eventCompletedDate: "2020-01-15",
+    eventDueDate: "2020-01-15",
+    Expected_Duration: "7"
+}
+)
+MERGE (a) -[r1:HAS]-> (b)
+return ID(b)
+`;
+*/
+    q = `MATCH (a) where a.caseID = '${caseID}'
+MERGE (b:Event ${param})
+MERGE (a) -[r1:HAS]-> (b)
+return ID(b)`;
+
+    console.log(q)
+
+    const session = driver.session()
+    session.run(q) 
+    .then(result => {
+        session.close();
+        console.log(result);
+        //res.json(result);
+        neweventid = toNumber(result.records[0]._fields[0]);
+        
+        res.json({status: 1, message: `New event: ${neweventid}`, data: neweventid});
+    })
+    .catch(error => {
+      session.close();
+      res.send(error)
+    })
+
 })
 
 
 //post
-router.post(`/createcase`, (req, res)=>{
+//move this to event?
+//Add a [r:NEXT] relation between Event
+//payload = {startNodeId: event_list[i-1]['id'], endNodeId: event_list[i]['id']}
 
-  var existingCases = []
+router.post(`/linkevents`, (req, res)=>{
+    
+    var caseID = req.params.caseID;
+    var param = req.body;
+    var startNodeId = param.startNodeId; //need error checking here
+    var endNodeId = param.endNodeId; //need error checking here
+    
+    
+    q = `
+MATCH (a:Event) where ID(a) = ${startNodeId}
+MATCH (b:Event) where ID(b) = ${endNodeId}
+MERGE (a) -[r1:NEXT]-> (b)
+return ID(a),ID(b)`;
+
+    console.log(q)
+
+    const session = driver.session()
+    session.run(q) 
+    .then(result => {
+        session.close();
+        console.log(result);
+        res.json(result);
+        //eventA = toNumber(result.records[0]._fields[0]);
+        //eventB = toNumber(result.records[0]._fields[0]);
+        
+        //res.json({status: 1, message: `New event: ${neweventid}`, data: neweventid});
+    })
+    .catch(error => {
+      session.close();
+      res.send(error)
+    })
+
+})
+
+
+
+//post
+router.post(`/createcase`, (req, res)=>{
     //console.log('/api/v1/getcases link works')
     //var newCase = JSON.parse(JSON.stringify(req.body))
     var newCase = JSON.stringify(req.body)
@@ -152,7 +273,6 @@ router.post(`/createcase`, (req, res)=>{
     exec_query(0)
     
 })
-
 
 
 //get
