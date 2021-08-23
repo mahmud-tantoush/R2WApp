@@ -28,12 +28,14 @@
 <div class="paper">
 
 <h1>
+<a href="/V2/listall.html">Index</a>
+/ 
 Case ID: <%= caseID; %>
 </h1>
 
     <div class="panel2">
         <h2>Case attributes</h2>
-        <div id="case_attributes" class="FForm"></div>
+        <div id="case_attributes" class="FForm">Loading...</div>
         
         <div class="submit_container">
             <span id="update_case_status"></span>
@@ -54,14 +56,11 @@ Case ID: <%= caseID; %>
 
 </div>
 
-<div id="case_events"></div>
+<div id="case_events"><div class="paper">Initialising timeline...</div></div>
 
 <div class="paper">
 
     <div id="case_events_debug" class="debug"></div>
-
-
-    <h2>Add event</h2>
 
 </div>
 
@@ -133,8 +132,6 @@ function update_case_record(){
     
 }
 
-
-
 function load_timeline(){
     $.ajax({
         url: '/V2/timelineV2.html',
@@ -143,15 +140,23 @@ function load_timeline(){
         success: function(data) {
             $("#case_events").html(data);
             
-            var url = `/api/v1/cases/getcaseevent/<%= caseID; %>`;
-            jqxhr = get(url, function (data) {
-                tmp = process_data(data);
-                if (tmp.nodes.length > 0){
-                    ctl.data = tmp;
-                    ctl.update();
-                    ctl.view_extent();
-                }
-            });
+            get_timeline_data(0)
+        }
+    });
+}
+function get_timeline_data(update){
+    var url = `/api/v1/cases/getcaseevent/<%= caseID; %>`;
+    jqxhr = get(url, function (data) {
+        tmp = process_data(data);
+        if (tmp.nodes.length > 0){
+            ctl.data = tmp;
+            
+            add_from_template(ctl.data); //experimental add templated nodes 
+            ctl.update();
+            if(!update){
+
+                ctl.view_extent();
+            }
         }
     });
 }
@@ -160,7 +165,160 @@ function load_timeline(){
 check_case_exist();
 load_timeline();
 
+
+// handle click on timeline items
+var eventID = null;
+
+function item_clicked(d){
+    eventID = d.id;
+
+    var data = d.properties;
+    var manage_form = makeform(data,[
+        {key:"Label",label:"Label",type:"text"},
+        {key:"Completed",label:"Completed",type:"boolean"},
+        {key:"eventStartDate",label:"Start date",type:"date"},
+        {key:"eventDueDate",label:"Due date",type:"date"},
+        {key:"eventCompletedDate",label:"Completed date",type:"date"},
+        {key:"Expected_Duration",label:"Expected duration",type:"number"},
+        {key:"Notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"}
+    ])
+    $("#manage_event").html(manage_form);
+    
+    $("#manage_event_btn").show()
+    
+    //////////////////////////////////////
+    //set visibility based on content in client
+    //var completed = $("#manage_event #Completed").val();
+    function check_completed(){
+         var completed = $("#manage_event #Completed").is(":checked");
+        if (!completed){
+             $("#manage_event .row-eventDueDate").show();
+             $("#manage_event .row-Expected_Duration").show();
+             $("#manage_event .row-eventCompletedDate").hide();
+        }else{
+             $("#manage_event .row-eventDueDate").hide();
+             $("#manage_event .row-Expected_Duration").hide();
+             $("#manage_event .row-eventCompletedDate").show();
+        }
+    }
+    check_completed();
+    $("#manage_event #Completed").on('change', function(d){
+        check_completed();
+    })
+    //update due date if expected duration changes
+    function modify_due_date(){
+        newdate = addDays(get_date_from_str($("#manage_event #eventStartDate").val()), Number($("#manage_event #Expected_Duration").val()))
+         $("#manage_event #eventDueDate").val(formatDate(newdate))
+    }
+    $("#manage_event #Expected_Duration").on('change', function(d){
+        modify_due_date()
+    })
+    //update expected duration when due date changes
+    function modify_expected_duration(){
+        days = (get_date_from_str($("#manage_event #eventDueDate").val())-get_date_from_str($("#manage_event  #eventStartDate").val()))/86400000
+         $("#manage_event #Expected_Duration").val(days);
+    }
+    $("#manage_event #eventDueDate").on('change', function(d){
+        modify_expected_duration()
+    })
+    //update due date if startdate changes, based on expected duration
+    $("#manage_event #eventStartDate").on('change', function(d){
+        modify_due_date()
+    })
+    
+    //////////////////////////////////////
+    
+    
+    
+}
+
+function update_event_record(){
+    if (eventID){
+        if (!isNaN(eventID)){
+        
+            inputs = parseform("#manage_event .editor");
+            console.log(inputs);
+            if (inputs.status){
+                $("#update_event_status").html("updating");
+                xhr = post('/api/v1/cases/updateevent/'+eventID,inputs.param,function(d){
+                    console.log(d);
+                    if ("status" in d){
+                        if(d.status){
+                            $("#update_event_status").html(`updated`);
+                            get_timeline_data(1);
+                        }
+                    }else{
+                        $("#update_event_status").html("error");
+                    }
+                })
+                
+            }
+        }
+        else{
+            //in timeline the eventID for placeholder are string e.g. X1, X2
+            //here we will use the form to add a new event
+            console.log("add event")
+            inputs = parseform("#manage_event .editor");
+            if (inputs.status){
+            
+                //Note: this adds the new event only, does not deal with Event-Event connection
+                //POST api/v1/cases/linkevents {startNodeId,endNodeId}
+                
+                $("#update_event_status").html("adding");
+                //find previous id
+                inEdges = _.filter(ctl.data.edges, {endNodeId:eventID})
+                var prevID = "";
+                if (inEdges.length){
+                    prevEventId = inEdges[0].startNodeId
+                    if (!isNaN(prevEventId)){
+                        prevID = "/"+prevEventId
+                    }
+                }
+                xhr = post('/api/v1/cases/addevent/<%= caseID; %>'+prevID,inputs.param,function(d){
+                    console.log(d);
+                    if ("status" in d){
+                        if(d.status){
+                            $("#update_event_status").html(`updated`);
+                            get_timeline_data(1); //update ctl
+                        }
+                    }else{
+                        $("#update_event_status").html("error");
+                    }
+                })
+                
+                
+                
+            }
+        }
+    }
+    
+}
+
+
+
 </script>
+
+
+
+<div class="paper">
+    <h2>Manage event</h2>
+    <div id="manage_event" class="FForm">Select an item in the timeline to edit</div>
+    <div id="manage_event_btn" style="display:none;text-align:right">
+        <span id="update_event_status"></span>
+        <button onclick="update_event_record()">Update record</button>
+    </div>
+
+    <h2>Add event</h2>
+    todo:
+    <br>
+    1. add event following another event<br>
+    2. add event<br>
+    
+    <be>
+
+</div>
+
+
 
 </body>
 </html>

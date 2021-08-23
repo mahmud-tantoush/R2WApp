@@ -10,6 +10,7 @@
 <script src="/V2/js/d3.v4.min.js"></script>
 <script src="/V2/js/jquery.min.js"></script>
 <script src="/V2/js/underscore-min.js"></script>
+<script src="/V2/js/Math.uuid.js"></script>
 
 <script src="/V2/js/R2W.js"></script>
 
@@ -35,7 +36,7 @@
 	text-align: center;			
 	width: 150px;					
 	height: 40px;					
-	padding: 15px;
+	padding: 0;
 	background: #000;
 	font: 11px sans-serif;		
 	color: #fff;
@@ -197,7 +198,7 @@ var NetworkTimeline = function(containerid, data){
     
     thisGraph.zoom = d3.zoom()
             .extent([[0, 0], [thisGraph.svgWidth, thisGraph.svgHeight]])
-            .scaleExtent([0.3, 5.6])
+            .scaleExtent([0.3, 20])
             //.translateExtent([[-thisGraph.width*10, -thisGraph.height*20], [thisGraph.width*10, thisGraph.height*20]])
             .on("zoom",zoomed); 
         
@@ -288,13 +289,14 @@ NetworkTimeline.prototype.resized = function() {
 
 // Create Event Handlers for mouse
 NetworkTimeline.prototype.handleItemClick = function(d, i) { 
-  try{
-    item_clicked(d); //
-  }
-  catch(e){ 
-    //console.warn(e); 
-    console.warn("item_clicked(d) for handleItemClick not found");
-  }
+    console.log(d);
+    try{
+        item_clicked(d); //
+    }
+    catch(e){ 
+        //console.warn(e); 
+        console.warn("item_clicked(d) for handleItemClick not found");
+    }
 }
 NetworkTimeline.prototype.handleItemMouseOver = function(d, i) { 
     //console.log(d)
@@ -306,7 +308,9 @@ NetworkTimeline.prototype.handleItemMouseOver = function(d, i) {
       .duration(200)		
       .style("opacity", .9);		
       
-    tooltipObj.html(d.draw.status.toUpperCase())	
+      
+    //tooltip text
+    tooltipObj.html("click to edit: "+ d.id)	//d.draw.status.toUpperCase()
       .style("left", function(d){
         if (d3.event.pageX > window.innerWidth-tooltipWidth+10){
           return (d3.event.pageX-tooltipWidth-10) + "px"
@@ -462,7 +466,8 @@ NetworkTimeline.prototype.redraw = function() {
 				function(d){
 					return d.draw.y+60;
 				})
-			.text(function(d){ return d.id + "-" + d.properties.Label;}) //not ideal but force redraw when label changes
+			.text(function(d){ return d.properties.Label;}) //not ideal but force redraw when label changes
+			//.text(function(d){ return d.id + "-" + d.properties.Label;}) //not ideal but force redraw when label changes
     
     //redraw line now
     today = thisGraph.scaleX(new Date().getTime());  //use 1622826495381 for test
@@ -622,18 +627,36 @@ function process_data(data){
     
     output = {"nodes":filtered_nodes,"edges":filtered_edges}
     
+    time_now = new Date();
+    
     for (var i in output.nodes){
     
         var startdate = get_date_from_str(output.nodes[i].properties.eventStartDate);
-        var enddate = addDays(startdate, Number(output.nodes[i].properties.Expected_Duration));
-        var status = "ongoing";
         
+        //NOTE: todo if the item is completed, use completed date instead
+        var enddate = addDays(startdate, Number(output.nodes[i].properties.Expected_Duration));
+        
+        
+        var status = "planned";
+        
+
+        //find ongoing
+        if (time_now-startdate > 0){
+             status = "ongoing";
+        }
+        //find completed
         if ("Completed" in output.nodes[i].properties){
         
             if (output.nodes[i].properties.Completed == "true"){
                 status = "completed";
-            }   
+                
+                enddate_tmp = get_date_from_str(output.nodes[i].properties.eventCompletedDate)
+                if(enddate_tmp){
+                    enddate = enddate_tmp
+                }
+            }
         }
+        
         output.nodes[i]["draw"] = {startdate:startdate, enddate:enddate, status:status }
     }
     
@@ -643,6 +666,98 @@ function process_data(data){
     
     return output;
 }
+
+//QoL
+/*
+find_end_nodes(timelinedata)
+
+add_template(timelinedata)
+*/
+
+function find_end_nodes(data){
+    //data = placeholder
+    //data = timelinedata
+    return _.filter(data.nodes, function(d){ return !_.find(data.edges,{startNodeId:d.id})})
+}
+
+function parse_template_node(endnode,data,i){
+    //here we will adjust the start date to meet with the current endnode
+    
+    //assuming completed with eventCompletedDate and eventStartDate, find duration as completed
+    
+    duration = (get_date_from_str(data.eventCompletedDate) - get_date_from_str(data.eventStartDate))/86400000
+    eventDueDate = addDays(endnode.draw.enddate, duration)
+    eventStartDate = endnode.draw.enddate
+    tmpid = Math.uuid()
+    
+    next_potential_event = { 
+        node:
+        {
+            "id":tmpid,
+            "properties":{
+                Label:data.Label,
+                eventStartDate:formatDate(eventStartDate),
+                Expected_Duration:duration,
+                eventDueDate:formatDate(eventDueDate),
+                Completed:"false"
+            },
+            "draw":{
+                "startdate":eventStartDate, 
+                "enddate":eventDueDate,
+                "status":"template"
+            }
+        },
+        edge:
+        {"id":Math.uuid(),"startNodeId":endnode.id,"endNodeId":tmpid,"type":"NEXT","properties":{},
+            "draw":{"status":"template"}
+        }
+     }
+        
+    console.log(next_potential_event);
+
+    return next_potential_event
+}
+
+function add_from_template(data){
+    /*
+        caseID: templateA
+        event Label: 
+        
+        MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]-(c) where a.caseID = 'templateA' AND b.Label = "Awareness" return c;
+        test
+        
+        async_post(`/api/v1/cases/getnextevent/templateA`, {Label:'Connection installed'})
+        
+    */
+    var endnodes = find_end_nodes(data);
+    var templatecase = "templateA";
+    
+    for (var i in endnodes){
+        endnode = endnodes[i];
+        eventLabel = endnode.properties.Label;
+        //search in template for the next potential node
+        async_post(`/api/v1/cases/getnextevent/${templatecase}`, {Label:eventLabel}, function(d){
+     
+            console.log(endnode);
+            if(d.prev && d.next){
+                //console.log(d);
+                template_addition = parse_template_node(endnode,d.next,i)
+                
+                data.nodes.push(template_addition.node)
+                data.edges.push(template_addition.edge)
+            }
+        })
+        
+        //ctl.update()
+        //ctl.view_extent()
+        
+    }
+    
+    
+}
+
+
+
 </script>
 
 
@@ -739,7 +854,7 @@ timelinedata = {
         },
         {
             "id":163,
-            "properties":{"Label":"Generic"},
+            "properties":{"Label":"Awareness"},
             "draw":
             {
                 "startdate":get_date_from_str("2021-10-01"), 
@@ -765,42 +880,57 @@ timelinedata = {
 
 }
 
+today = new Date();
+today.setMinutes(0)
+today.setHours(1)
 
+
+
+//this will show by default when there are no events, but also when it is loading
 placeholder = {
         "nodes":[
         {
-            "id":1,
-            "properties":{"Label":"Loading"},
+            "id":"X1",
+            "properties":{
+                "Label":"Placeholder",
+                "eventStartDate":addDays(today,0),
+                "eventDueDate":addDays(today,10),
+                "Expected_Duration":10
+            },
             "draw":
             {
-                "startdate":get_date_from_str("2020-12-01"), 
-                "enddate":get_date_from_str("2021-01-01"),
+                "startdate": addDays(today,0), //get_date_from_str("2020-12-01"), 
+                "enddate": addDays(today,10),
                 "status":"template"
             }
         },
         {
-            "id":2,
-            "properties":{"Label":"Loading"},
+            "id":"X2",
+            "properties":{"Label":"Placeholder",
+                "eventStartDate":addDays(today,11),
+                "eventDueDate":addDays(today,15),
+                "Expected_Duration":4
+            },
             "draw":
             {
-                "startdate":get_date_from_str("2021-02-01"), 
-                "enddate":get_date_from_str("2021-03-01"),
+                "startdate":addDays(today,11), 
+                "enddate":addDays(today,15),
                 "status":"template"
             }
         }
         ],
         "edges":[
-            {"id":1,"startNodeId":1,"endNodeId":2,"type":"Action","properties":{},
+            {"id":1,"startNodeId":"X1","endNodeId":"X2","type":"Action","properties":{},
                 "draw":
                 {
                     "status":"template"
                 }
-            
             }
         ]
     }
 
 var ctl = new NetworkTimeline("#mainsvg",placeholder);
+//var ctl = new NetworkTimeline("#mainsvg",timelinedata);
 ctl.update()
 ctl.view_extent()
 
@@ -816,20 +946,28 @@ ctl.view_extent()
 //handle resize event
 window.addEventListener('resize', function (){ctl.resized()} );
 
+
+
+
+
 </script>
 
 <!-- <div style="position:relative"> -->
 <!-- <div style="position:absolute;top:-40px;left:10px"> -->
+<div class="paper" style="padding:0">
 <button onclick="ctl.view_today_extent()">Today</button>
 <button onclick="ctl.view_extent()">View extent</button>
+</div>
 <!-- </div> -->
 <!-- </div> -->
 
 <script>
 
 //control this in another file for item_clicked(d)
+/*
 function item_clicked(d)
 {
     console.log(d);
 }
+*/
 </script>

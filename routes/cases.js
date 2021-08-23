@@ -190,6 +190,9 @@ return ID(b)`;
 
 })
 
+
+//post
+//add a new Event to a Case by caseID, also add a NEXT relation from eventID 
 router.post(`/addevent/:caseID/:eventID`, (req, res)=>{
     
     var caseID = req.params.caseID; // properties 
@@ -199,8 +202,8 @@ router.post(`/addevent/:caseID/:eventID`, (req, res)=>{
 /*
     q = `
 MATCH (a) where a.caseID = '20006'
-MATCH (c:Event) where ID(c) = 233
-MERGE (b:Event 
+MATCH (c:Event) where ID(c) = 555
+CREATE (b:Event 
 {
     Label: "Nal Committee Formation",
     Completed: "true",
