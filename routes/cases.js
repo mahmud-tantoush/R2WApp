@@ -418,28 +418,39 @@ router.post(`/getnextevent/:caseID`, (req, res)=>{
     //var eventLabel = req.params.eventLabel;
     var eventLabel = req.body.Label;
     
+    /*
+    test
+    MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]-(c) where a.caseID = 'templateA' AND b.Label = "Connection Installed" return b,c;
+    */
+    
     const session = driver.session()
-    q = `MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]-(c) where a.caseID = '${caseID}' AND b.Label = "${eventLabel}" return b,c;`
+    q = `MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]->(c) where a.caseID = '${caseID}' AND b.Label = "${eventLabel}" return b,c;`
     
     //`MATCH (n:Case {caseID:'${req.params.caseID}'}) RETURN n`
     console.log(q)
+    
     session.run(q) 
       .then(result => {
-        //console.log(result)
+          
+          
+        console.log("HERE")
+        console.log(result.records)
+        
         session.close();
         //res.json(result.records)
         
-        output = {
+        var tmp = {
             prev: result.records[0]._fields[0].properties,
             next: result.records[0]._fields[1].properties
         }
-        res.json(output)
+        res.json(tmp)
       })
       .catch(error => {
         session.close();
         res.send(error)
       })
 })
+
 
 
 module.exports = router;
