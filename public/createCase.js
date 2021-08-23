@@ -49,14 +49,20 @@ createCaseForm.addEventListener('submit', (e) => {
         type: 'POST',
         contentType: 'application/json',
         data: newCase,
-        success: function(response){console.log(response)}})
-        .then(createCaseForm.innerHTML = "<h6><b>Case Created, go to the <a href='index.html'>graphs page </a> to view</b></h6>")
+        success: function(response){
+            console.log(response)
+            console.log(response.status)
+
+            if (response.status == 0){
+            createCaseForm.innerHTML = "<h6><b>caseID already exists, please try again with new caseID. <a href='createCase.html'>Create case page </a></b></h6>"
+            }
+            else{
+            createCaseForm.innerHTML = "<h6><b>Case Created, go to the <a href='index.html'>graphs page </a> to view</b></h6>"
+            }
+        }})
         .catch(e => {
-            session.close();
-            throw e
+            console.log(e)
         });
     
     }
 })
-
-//console.log(createCaseForm)

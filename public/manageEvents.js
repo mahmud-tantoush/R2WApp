@@ -18,8 +18,7 @@ $.ajax({
         DBlist = result
         renderListings(DBlist)
 }}).catch(e => {
-        session.close();
-        throw e
+        console.log(e)
 });
 
 var listingEl = document.getElementById('feature-listing');

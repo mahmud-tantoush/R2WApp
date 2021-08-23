@@ -11,6 +11,11 @@ const driver = neo4j.driver(
     ) 
 )
 
+// console.log(config.DATABASE_URL)
+// console.log(config.DATABASE_USER)
+// console.log(config.DATABASE_PSWRD)
+
+
 // dbLoc = 'bolt://eric.myvnc.com:7687'
 // dbUsername = 'neo4j'
 // dbPassword = 'quarterdecks-woods-banks'

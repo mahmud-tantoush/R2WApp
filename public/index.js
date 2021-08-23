@@ -2,11 +2,7 @@ var viz;
 
 var DBlist = []
 
-fetch('./api/v1/cases/getcases')
-.then((res)=> {
-    res.json().then(data => renderListings(data))
-})
-.catch((err)=> console.log(err))
+loadListings()
 
 // var session = driver.session();
 // //get properties for each case in db     var=DBlists

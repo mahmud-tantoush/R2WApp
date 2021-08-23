@@ -8,26 +8,7 @@ function normalize(string) {
     return string.trim().toLowerCase();
     }
 
-//get properties for each case in db     var=DBlist
-session
-    .run(`Match (n:Case) return n`)
-    .then((result) => {
-        //console.log(result.records[0]._fields[0])
-        session.close()
-        DBlist = []
-        result.records.forEach(function(record){
-            //console.log(record._fields[0])
-            DBlist.push(record._fields[0])
-        })
-    })
-    .then(() => {   
-        //console.log(DBlist)
-        renderListings(DBlist)
-    })
-    .catch(e => {
-        session.close();
-        throw e
-    });
+loadListings()
 
 var listingEl = document.getElementById('feature-listing');
 var filterEl = document.getElementById('feature-filter');

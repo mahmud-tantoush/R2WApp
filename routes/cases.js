@@ -98,7 +98,7 @@ router.post(`/updatecase/:caseID`, (req, res)=>{
         session.run(q) 
         .then(result => {
             session.close();
-            res.json({status: 1, message: `Update case record: ${caseID}`})
+            res.json({status: 1, message: `Update case record: ${caseID}`, data: param })
         })
         .catch(error => {
           session.close();

@@ -9,25 +9,13 @@ function normalize(string) {
     }
 
 //get properties for each case in db     var=DBlist
-session
-    .run(`Match (n:Case) return n`)
-    .then((result) => {
-        //console.log(result.records[0]._fields[0])
-        session.close()
-        DBlist = []
-        result.records.forEach(function(record){
-            //console.log(record._fields[0])
-            DBlist.push(record._fields[0])
-        })
-    })
-    .then(() => {   
-        //console.log(DBlist)
-        renderListings(DBlist)
-    })
-    .catch(e => {
-        session.close();
-        throw e
-    });
+// fetch('./api/v1/cases/getcases')
+// .then((res)=> {
+//     res.json().then(data => renderListings(data))
+// })
+// .catch((err)=> console.log(err))
+
+loadListings()
 
 var listingEl = document.getElementById('feature-listing');
 var filterEl = document.getElementById('feature-filter');
@@ -65,44 +53,66 @@ function renderListings(items) {
 
                     currentCaseID = item.properties.caseID
 
-                    var session = driver.session();
-
-                    query = `Match (n:Case {caseID: '${item.properties.caseID}'}) return n`
-
-                    //get properties for each case in db     var=DBlist
-                    session
-                        .run(query)
-                        .then((result) => {
-                            console.log(query)
-                            console.log(result.records[0]._fields[0])
-                            session.close()
-                            var currCase = result.records[0]._fields[0]
-                            //console.log(currCase)
-
-                                                //reveal form
+                    fetch(`./api/v1/cases/getcase/${currentCaseID}`)
+                    .then((res)=> {
+                        res.json().then(currCase => {
                             document.getElementById('createCaseForm').style = 'display:block'
 
-                            // change CASEID title
                             document.getElementById('titleElement').innerText = `Case: ${item.properties.caseID}`
                             
                             var elCaseID = document.getElementById('caseIDi')
                             elCaseID.value = item.properties.caseID
                             currentCaseID = elCaseID.value
                             var elApplicant = document.getElementById('applicant')
-                            elApplicant.value = currCase.properties.applicant
+                            elApplicant.value = currCase.applicant
                             var elLocation = document.getElementById('location')
-                            elLocation.value = currCase.properties.Location
+                            elLocation.value = currCase.Location
                             var elPHSv = document.getElementById('PHSv')
-                            elPHSv.value = currCase.properties.phsVolunteer
+                            elPHSv.value = currCase.phsVolunteer
                             var elNotes = document.getElementById('notes')
-                            elNotes.value = currCase.properties.notes
-
+                            elNotes.value = currCase.notes
                         })
-                        .catch(e => {
-                            session.close();
-                            throw e
-                        });
+                    })
+                    .catch((err)=> console.log(err))
 
+                    //var session = driver.session();
+
+                    //query = `Match (n:Case {caseID: '${item.properties.caseID}'}) return n`
+
+                    //get properties for each case in db     var=DBlist
+                    // session
+                    //     .run(query)
+                    //     .then((result) => {
+                    //         console.log(query)
+                    //         console.log(result.records[0]._fields[0])
+                    //         session.close()
+                    //         var currCase = result.records[0]._fields[0]
+                    //         //console.log(currCase)
+
+                    //                             //reveal form
+                    //         document.getElementById('createCaseForm').style = 'display:block'
+
+                    //         // change CASEID title
+                    //         document.getElementById('titleElement').innerText = `Case: ${item.properties.caseID}`
+                            
+                    //         var elCaseID = document.getElementById('caseIDi')
+                    //         elCaseID.value = item.properties.caseID
+                    //         currentCaseID = elCaseID.value
+                    //         var elApplicant = document.getElementById('applicant')
+                    //         elApplicant.value = currCase.properties.applicant
+                    //         var elLocation = document.getElementById('location')
+                    //         elLocation.value = currCase.properties.Location
+                    //         var elPHSv = document.getElementById('PHSv')
+                    //         elPHSv.value = currCase.properties.phsVolunteer
+                    //         var elNotes = document.getElementById('notes')
+                    //         elNotes.value = currCase.properties.notes
+
+                    //     })
+                    //     .catch(e => {
+                    //         console.log(e)
+                    //         //session.close();
+                    //         //throw e
+                    //     });
 
                 });
                 listingEl.appendChild(i);
@@ -121,30 +131,52 @@ caseManagementForm.addEventListener('submit', (e) => {
 
     e.preventDefault();
     
-    var n = `{caseID: '${caseIDi.value}', \
-    applicant: '${applicant.value}',\
-    Location: '${loc.value}',  \
-    phsVolunteer: '${phsVolunteer.value}', \
-    notes : '${notes.value}'}`
-    //console.log(n) 
+    var n = `{"caseID": "${caseIDi.value}", \
+    "applicant": "${applicant.value}",\
+    "Location": "${loc.value}",  \
+    "phsVolunteer": "${phsVolunteer.value}", \
+    "notes" : "${notes.value}"}`
+
+    console.log(n) 
 
     // run the create command in db
-    var session = driver.session();
-    qstring = `MATCH (n:Case {caseID: '${currentCaseID}'})\
-    set n = ${n}`
-    session
-    .run(qstring)
-    .then(() => {
-        console.log(qstring)
-        createCaseForm.innerHTML = "<h6><b>Case Updated, page is reloading</b></h6>"
-        document.location.reload(true)
-    })
-    .catch(e => {
-        console.log(qstring)
-        console/log('error with query')
-        session.close();
-        throw e
-    });
+    $.ajax({
+        url: `/api/v1/cases/updatecase/${currentCaseID}`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: n,
+        success: function(res){
+            console.log(res)
+            if(res.status == 1){
+                createCaseForm.innerHTML = "<h6><b>Case Updated, page is reloading</b></h6>"
+                document.location.reload(true)
+            }
+            else{
+                createCaseForm.innerHTML = "<h6><b>Case not Updated, error with data sent to server</b></h6>"
+                console.log('error with prossessing form ')
+            }
+        }})
+        .catch(e => {
+            console.log(e)
+            console.log(req.body)
+        });
+
+    // var session = driver.session();
+    // qstring = `MATCH (n:Case {caseID: '${currentCaseID}'})\
+    // set n = ${n}`
+    // session
+    // .run(qstring)
+    // .then(() => {
+    //     console.log(qstring)
+    //     createCaseForm.innerHTML = "<h6><b>Case Updated, page is reloading</b></h6>"
+    //     document.location.reload(true)
+    // })
+    // .catch(e => {
+    //     console.log(qstring)
+    //     console/log('error with query')
+    //     session.close();
+    //     throw e
+    // });
 })
 
 var deleteCaseButton = document.getElementById('DeleteCaseButton')
