@@ -167,7 +167,7 @@ return ID(b)
 `;
 */
     q = `MATCH (a) where a.caseID = '${caseID}'
-MERGE (b:Event ${param})
+CREATE (b:Event ${param})
 MERGE (a) -[r1:HAS]-> (b)
 return ID(b)`;
 
@@ -190,7 +190,58 @@ return ID(b)`;
 
 })
 
+router.post(`/addevent/:caseID/:eventID`, (req, res)=>{
+    
+    var caseID = req.params.caseID; // properties 
+    var prevEventID = req.params.eventID; //node id
+    var param = process_json_n4j(req.body);
 
+/*
+    q = `
+MATCH (a) where a.caseID = '20006'
+MATCH (c:Event) where ID(c) = 233
+MERGE (b:Event 
+{
+    Label: "Nal Committee Formation",
+    Completed: "true",
+    eventStartDate: "2020-01-08",
+    eventCompletedDate: "2020-01-15",
+    eventDueDate: "2020-01-15",
+    Expected_Duration: "7"
+}
+)
+MERGE (a) -[r1:HAS]-> (b)
+MERGE (c) -[r2:NEXT]-> (b)
+return ID(b)
+`;
+*/
+    q = `
+MATCH (a) where a.caseID = '${caseID}'
+MATCH (c:Event) where ID(c) = ${prevEventID}
+CREATE (b:Event ${param})
+MERGE (a) -[r1:HAS]-> (b)
+MERGE (c) -[r2:NEXT]-> (b)
+return ID(b)
+`;
+
+    console.log(q)
+
+    const session = driver.session()
+    session.run(q) 
+    .then(result => {
+        session.close();
+        console.log(result);
+        //res.json(result);
+        neweventid = toNumber(result.records[0]._fields[0]);
+        
+        res.json({status: 1, message: `New event: ${neweventid}`, data: neweventid});
+    })
+    .catch(error => {
+      session.close();
+      res.send(error)
+    })
+
+})
 //post
 //move this to event?
 //Add a [r:NEXT] relation between Event
@@ -353,18 +404,22 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
 })
 
 
-//get
+//post
 //experimental get a preceding Event from a known caseID and a known Label, for use to suggest next step 
 
-router.get(`/getnextevent/:caseID/:eventLabel`, (req, res)=>{
+//issues when the event label has special characters
+//router.get(`/getnextevent/:caseID/:eventLabel`, (req, res)=>{
+    
+router.post(`/getnextevent/:caseID`, (req, res)=>{
     //console.log('/api/v1/getcase/:case link works')
     console.log(req.params)
+    console.log(req.body)
     var caseID = req.params.caseID;
-    var eventLabel = req.params.eventLabel;
-   // var eventLabel = req.body.Label;
+    //var eventLabel = req.params.eventLabel;
+    var eventLabel = req.body.Label;
     
     const session = driver.session()
-    q = `MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]-(c) where a.caseID = '${caseID}' AND b.Label = "${eventLabel}" return c;`
+    q = `MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]-(c) where a.caseID = '${caseID}' AND b.Label = "${eventLabel}" return b,c;`
     
     //`MATCH (n:Case {caseID:'${req.params.caseID}'}) RETURN n`
     console.log(q)
@@ -372,8 +427,13 @@ router.get(`/getnextevent/:caseID/:eventLabel`, (req, res)=>{
       .then(result => {
         //console.log(result)
         session.close();
-        res.json(result.records)
-        //res.json(result.records[0]._fields[0].properties)
+        //res.json(result.records)
+        
+        output = {
+            prev: result.records[0]._fields[0].properties,
+            next: result.records[0]._fields[1].properties
+        }
+        res.json(output)
       })
       .catch(error => {
         session.close();
