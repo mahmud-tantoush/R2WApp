@@ -352,4 +352,34 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
       
 })
 
+
+//get
+//experimental get a preceding Event from a known caseID and a known Label, for use to suggest next step 
+
+router.get(`/getnextevent/:caseID/:eventLabel`, (req, res)=>{
+    //console.log('/api/v1/getcase/:case link works')
+    console.log(req.params)
+    var caseID = req.params.caseID;
+    var eventLabel = req.params.eventLabel;
+   // var eventLabel = req.body.Label;
+    
+    const session = driver.session()
+    q = `MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]-(c) where a.caseID = '${caseID}' AND b.Label = "${eventLabel}" return c;`
+    
+    //`MATCH (n:Case {caseID:'${req.params.caseID}'}) RETURN n`
+    console.log(q)
+    session.run(q) 
+      .then(result => {
+        //console.log(result)
+        session.close();
+        res.json(result.records)
+        //res.json(result.records[0]._fields[0].properties)
+      })
+      .catch(error => {
+        session.close();
+        res.send(error)
+      })
+})
+
+
 module.exports = router;
