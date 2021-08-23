@@ -21,15 +21,13 @@ function get(url,result_function){
   return jqxhr;
 }
 //////////////////////////////////////
-//fire a post request, returns jqxhr for promise
-function post(url,data,result_function){
-  //console.log(data);
+//fire a get request, returns jqxhr for promise
+function async_get(url,result_function){
   var jqxhr = $.ajax( {
-      type:"POST",
+      type:"GET",
       url:url,
-      data:JSON.stringify(data),
-      contentType:"application/json",
-      dataType: "json"
+      cache:false,
+      async: false
     } )
     .done(function(d) {
       if (result_function){
@@ -46,6 +44,89 @@ function post(url,data,result_function){
 }
 //////////////////////////////////////
 
+//fire a post request, returns jqxhr for promise
+function post(url,data,result_function){
+  //console.log(data);
+  var jqxhr = $.ajax( {
+      type:"POST",
+      url:url,
+      data:JSON.stringify(data),
+      contentType:"application/json",
+      dataType: "json"
+    } )
+    .done(function(d) {
+      if (result_function){
+        result_function(d,data);
+      }
+      else{
+        inspectJSON(d,data)
+      }
+    })
+    .fail(function() {
+      console.error( "Error get:" + url );
+    })
+  return jqxhr;
+}
+//////////////////////////////////////
+//fire a post request, returns jqxhr for promise
+function async_post(url,data,result_function){
+  //console.log(data);
+  var jqxhr = $.ajax( {
+      type:"POST",
+      url:url,
+      data:JSON.stringify(data),
+      contentType:"application/json",
+      dataType: "json",
+      async: false
+    } )
+    .done(function(d) {
+      if (result_function){
+        result_function(d,data);
+      }
+      else{
+        inspectJSON(d,data)
+      }
+    })
+    .fail(function() {
+      console.error( "Error get:" + url );
+    })
+  return jqxhr;
+}
+//////////////////////////////////////
+
+//fire a post request, returns jqxhr for promise
+function promise_post(url,data,result_function){
+    
+  return new Promise((resolve, reject) => {
+    $.ajax( 
+        {
+            type:"POST",
+            url:url,
+            data:JSON.stringify(data),
+            contentType:"application/json",
+            dataType: "json",
+            success: function (data) {
+                resolve(data)
+                if (result_function){
+                    result_function(data);
+                }
+                else{
+                    inspectJSON(data)
+                }
+            },
+            error: function (error) {
+                reject(error)
+            }
+        }
+    )
+  })
+}
+//////////////////////////////////////
+
+
+
+
+
 function makeform(jsonobj,config){
     //jsonobj - single level {key:value}
     //config - [{key,label,type]
@@ -56,9 +137,11 @@ function makeform(jsonobj,config){
     for (var i in config){
         var item = config[i];
 
-        if (item.key in jsonobj ){
+        //if (item.key in jsonobj ){
             var value = jsonobj[item.key];
-
+            if (value == undefined){
+                value = ""
+            }
             if (item.type != "hidden"){
                 
                 if ("placeholder" in item){
@@ -67,23 +150,36 @@ function makeform(jsonobj,config){
                     placeholder = ''
                 }
                 
-                htmlStr += "<li>";
-                htmlStr += `<label class='FLabel' for="${item.key}">${item.label}</label>`;
+                htmlStr += `<li class="row-${item.key}">`;
+                htmlStr += `<label class="FLabel" for="${item.key}">${item.label}</label>`;
                 
                 //htmlStr += value;
                 if (item.type == "date"){
-                    htmlStr += `<input type="date" name="${item.key}" value="${formatDate(get_date_from_str(value))}" class="editor">`;
+                    dateStr = ""
+                    try{
+                        date = formatDate(get_date_from_str(value))
+                        if (date != "NaN-aN-aN"){
+                            dateStr = `value="${date}"`
+                        }
+                    }catch(e){
+                        dateStr = ""
+                    }
+                    htmlStr += `<input id="${item.key}" type="date" name="${item.key}" ${dateStr} class="editor">`;
                 }
                 else if (item.type == 'number'){
-                     htmlStr += `<input type="number" name="${item.key}" value="${value}" class="editor">`;
+                     htmlStr += `<input id="${item.key}" type="number" name="${item.key}" value="${value}" class="editor">`;
                 }
                 else if (item.type == 'boolean'){
-                    if (item == 'true'){ isTrue = " selected"; isFalse = "";}
+                    /*
+                    if (value == 'true'){ isTrue = " selected"; isFalse = "";}
                     else{ isTrue = ""; isFalse = " selected";}
-                     htmlStr += `<select name="${item.key}" class="editor"><option ${isTrue}>true</option><option ${isFalse}>false</option></select>`;
+                     htmlStr += `<select id="${item.key}" name="${item.key}" class="editor"><option value="true" ${isTrue}>YES</option><option value="false" ${isFalse}>NO</option></select>`;*/
+                     var checked = "";
+                     if (value == 'true'){ checked = " checked";}
+                    htmlStr += `<input type="checkbox" id="${item.key}" name="${item.key}" class="editor checkbox" ${checked}>`
                 }
                 else if (item.type == 'textarea'){
-                     htmlStr += `<textarea name="${item.key}" class="editor" ${placeholder}>${value}</textarea>`;
+                     htmlStr += `<textarea id="${item.key}" name="${item.key}" class="editor" ${placeholder}>${value}</textarea>`;
                 }
                 else{
                     htmlStr += `<input type="text" name="${item.key}" value="${value}" class="editor" ${placeholder}>`;
@@ -95,7 +191,7 @@ function makeform(jsonobj,config){
             }
             
             
-        }
+        // }
         
     }
     htmlStr += "</ol>";
@@ -113,9 +209,14 @@ function parseform(domid){
 		key = $( this ).attr("name");
 		datatype = $( this ).attr("type");
 		//console.log( key );
-		if (key == "Label"){
-			val = $("#Label option:selected").val(); //tmp only for exceptions
-		}else{
+        
+        if (datatype == "checkbox"){
+            val = $( this ).is(":checked");
+        }
+		//else if (key == "Label"){
+		//	val = $("#Label option:selected").val(); //tmp only for exceptions
+		//}
+        else{
 			val = $(this).val();
 		}
 		//todo: add client side verification here
