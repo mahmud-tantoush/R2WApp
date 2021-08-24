@@ -39,7 +39,7 @@ router.get(`/getcase/:caseID`, (req, res)=>{
 router.get(`/getcases`, (req, res)=>{
     //console.log('/api/v1/getcases link works')
     const session = driver.session()
-    session.run(`Match (n:Case) return n`)
+    session.run(`MATCH (n:Case) WHERE COALESCE(n.hidden, 0) <> 1 RETURN n`)
       .then(result => {
         session.close();
         //console.log(result.records)
@@ -107,6 +107,9 @@ router.post(`/updatecase/:caseID`, (req, res)=>{
         })
     }
 })
+
+
+
 
 //post
 //move this to event?
@@ -292,7 +295,7 @@ router.post(`/createcase`, (req, res)=>{
     //var newCase = JSON.parse(JSON.stringify(req.body))
     var newCase = JSON.stringify(req.body)
     var newCase = newCase.replace(/"([^"]+)":/g, '$1:');
-
+    console.log(newCase)
     q1 = "MATCH (p:Case {caseID: '"+req.body['caseID']+"'}) return count(p) as len"
     q2 = `CREATE (n:Case ${newCase}) return n`
     q = [q1,q2]
@@ -315,7 +318,7 @@ router.post(`/createcase`, (req, res)=>{
                 res.json({status: 0, message: 'caseID already exists'})
               }
            }else{
-               res.json({status: 1, message: 'new case with properties created'})
+               res.json({status: 1, message: 'new case added', data: req.body['caseID']})
                session.close();
            }
         })
@@ -454,6 +457,64 @@ router.post(`/getnextevent/:caseID`, (req, res)=>{
       })
 })
 
+//delete Event
+router.delete(`/event/:eventID`, (req, res)=>{
+    //console.log('/api/v1/getcase/:case link works')
+    console.log(req.params)
+    var eventID = Number(req.params.eventID);
+    
+    const session = driver.session()
+    
+    //DETACH DELETE n
+    q = `MATCH (n:Event) 
+    WHERE ID(n) = ${eventID} 
+    WITH n, properties(n) AS m  
+    DETACH DELETE n
+    RETURN m`
+    
+    //todo: change this to return the relations and the node properties itself, say to file
+    
+    console.log(q)
+    session.run(q) 
+      .then(result => {
+        //console.log(result)
+        session.close();
+        //res.json(result.records)
+        //res.json(result.records[0]._fields[0].properties)
+        res.json(result.records)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+//"delete" Case - "mark the case as hidden"
+router.delete(`/case/:caseID`, (req, res)=>{
+    //console.log('/api/v1/getcases link works')
+    //var newCase = JSON.parse(JSON.stringify(req.body))
+    var param = req.body;
+    delete param['caseID']
+    
+    var caseID = req.params.caseID; //note: if the caseID does not exist, no changes in n4j
+
+    q = `MATCH (n) WHERE n.caseID = "${caseID}" SET n.hidden = 1`;
+    console.log(q)
+    
+    const session = driver.session()
+    session.run(q) 
+    .then(result => {
+        session.close();
+        res.json({status: 1, message: `Deleted case record: ${caseID}`})
+    })
+    .catch(error => {
+      session.close();
+      error["status"] = 0;
+      res.send(error)
+    })
+    
+})
 
 
 module.exports = router;
