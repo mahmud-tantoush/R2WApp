@@ -20,6 +20,12 @@ html,body{
     box-sizing: border-box ; 
     font-family: Roboto, sans-serif;
 }
+a {color:#888; text-decoration:none}
+a:visited{ color:#888}
+a:hover{ color:gold}
+
+
+/*R2W styles */
 
 .paper{
     width:80%;
@@ -66,6 +72,12 @@ input, textarea,button{
     border:0;
     border-radius:5px;
 }
+.checkbox{
+    width:50px !important;
+}
+textarea{
+    height:150px;
+}
 button{
     background:#fff;
     padding:10px 15px;
@@ -89,6 +101,7 @@ label{
     display:none;
     text-align: right;
 }
+
 fieldset { 
     margin: 0; 
     padding:0;
@@ -127,3 +140,33 @@ fieldset ol li textarea {
     margin-bottom: 0px; 
 } 
 
+/* style checkbox - note: require a label after the checkbox */
+input[type=checkbox] {
+    display: none;
+}
+
+input[type=checkbox] + label {
+    display: inline-block;
+    position: relative;
+    padding: 15px;
+    background-color: #eeeeee;
+    border: 1px solid #888888;
+    border-radius: 5px;
+    width: 30px;
+    height: 30px;
+}
+
+input[type=checkbox]:checked + label {
+    background-color: #eeeeee;
+    color: #A4B7C6;
+}
+
+input[type=checkbox]:checked + label:after {
+    position: absolute;
+    left: 4px;
+    top: -1px;
+    color: #000000; 
+    font-weight:900;
+    content: '\2714'; 
+    font-size: 24px;
+} 

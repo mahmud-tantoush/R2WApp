@@ -177,6 +177,7 @@ function makeform(jsonobj,config){
                      var checked = "";
                      if (value == 'true'){ checked = " checked";}
                     htmlStr += `<input type="checkbox" id="${item.key}" name="${item.key}" class="editor checkbox" ${checked}>`
+                    htmlStr += `<label for="${item.key}"></label>`
                 }
                 else if (item.type == 'textarea'){
                      htmlStr += `<textarea id="${item.key}" name="${item.key}" class="editor" ${placeholder}>${value}</textarea>`;
@@ -236,6 +237,15 @@ function parseform(domid){
     
     return postobj;
 }
+
+/////////////////////////////////
+//page interaction
+function scrollTo(domid){
+    $('html, body').animate({
+    scrollTop: $(domid).offset().top
+    }, 1000);
+}
+
 
 /////////////////////////////////
 function get_timestamp_from_str(str){

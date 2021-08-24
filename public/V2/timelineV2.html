@@ -622,47 +622,65 @@ function process_data(data){
     //remove edges without id in output
     //_.filter(tmp.edges,function(d){ return (_.find(tmp.nodes,{id:d.startNodeId}) && _.find(tmp.nodes,{id:d.endNodeId}))});
     
-    filtered_nodes = _.filter(data.nodes,function(d){return _.contains(d.labels,"Event");})
-    filtered_edges = _.filter(data.edges,function(d){ return (_.find(filtered_nodes,{id:d.startNodeId}) && _.find(filtered_nodes,{id:d.endNodeId}))});
+    var filtered_nodes = _.filter(data.nodes,function(d){return _.contains(d.labels,"Event");}) //refactor input to remove Case
+    //output = {"nodes":filtered_nodes,"edges":filtered_edges}
     
-    output = {"nodes":filtered_nodes,"edges":filtered_edges}
+    var time_now = new Date();
+    var cleaned_nodes = [];
+    var error_nodes = [];
+    var error_log = [];
     
-    time_now = new Date();
-    
-    for (var i in output.nodes){
-    
-        var startdate = get_date_from_str(output.nodes[i].properties.eventStartDate);
+    for (var i in filtered_nodes){
+        var error = []
         
+        var startdate = get_date_from_str(filtered_nodes[i].properties.eventStartDate);
         //NOTE: todo if the item is completed, use completed date instead
-        var enddate = addDays(startdate, Number(output.nodes[i].properties.Expected_Duration));
-        
+        var enddate = addDays(startdate, Number(filtered_nodes[i].properties.Expected_Duration));
+
+        if (startdate == "Invalid Date"){
+            error.push("eventStartDate")
+            
+        }
         
         var status = "planned";
-        
-
         //find ongoing
         if (time_now-startdate > 0){
              status = "ongoing";
         }
         //find completed
-        if ("Completed" in output.nodes[i].properties){
+        if ("Completed" in filtered_nodes[i].properties){
         
-            if (output.nodes[i].properties.Completed == "true"){
+            if (filtered_nodes[i].properties.Completed == "true"){
                 status = "completed";
                 
-                enddate_tmp = get_date_from_str(output.nodes[i].properties.eventCompletedDate)
-                if(enddate_tmp){
+                enddate_tmp = get_date_from_str(filtered_nodes[i].properties.eventCompletedDate)
+                if(enddate_tmp && enddate_tmp != "Invalid Date"){
                     enddate = enddate_tmp
                 }
             }
         }
         
-        output.nodes[i]["draw"] = {startdate:startdate, enddate:enddate, status:status }
+        if (enddate == "Invalid Date"){
+            error.push("Expected_Duration or eventCompletedDate")
+        }
+        if (!error.length){
+            filtered_nodes[i]["draw"] = {startdate:startdate, enddate:enddate, status:status }
+            cleaned_nodes.push(filtered_nodes[i]);
+        }else{
+            filtered_nodes[i]["error"] = error;
+            error_nodes.push(filtered_nodes[i]);
+        }
     }
     
-    //remove if not event
+    //remove error where data does not conform with the timeline and report
+    var filtered_edges = _.filter(data.edges,function(d){ return (_.find(filtered_nodes,{id:d.startNodeId}) && _.find(filtered_nodes,{id:d.endNodeId}))});
     
+    output = {"nodes":cleaned_nodes,"edges":filtered_edges}
     
+    if (error_nodes.length){
+        console.warn("Number of error: " + error_nodes.length +"/"+ filtered_nodes.length );
+        console.warn(error_nodes);
+    }
     
     return output;
 }
@@ -765,7 +783,7 @@ function add_from_template(data){
 
 <script>
 
-timeline_data = process_data(data);
+//timeline_data = process_data(data);
 /*
 there is a need to pre-process the data for a timeline
 

@@ -1,0 +1,53 @@
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<head>
+<title>
+R2W working document V2
+</title>
+<Script src="js/jquery.min.js"></script>
+<Script src="js/R2W.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+
+<style>
+
+</style>
+<body>
+<div class="paper">
+    <h1>R2W / Index</h1>
+
+    <div id="all_cases">
+
+    </div>
+    <p>
+    todo: ways to navigate when there are more records e.g. pagination / search
+</div>
+
+
+<script>
+function show_all_cases(){
+  var url = `/api/v1/cases/getcases`;
+  jqxhr = get(url,_show_all_cases);
+}
+function _show_all_cases(data){
+    var htmlStr = ""
+    $.each(data, function(i,d){
+        htmlStr += "<li>";
+        htmlStr += `<a href="/view/case/${d.properties.caseID}">`;
+        htmlStr += d.properties.caseID; //aplicant, phsVolunteer, notes, Location, dateLogged
+        //console.log(d.properties)
+        htmlStr += "</a>";
+        htmlStr += "</li>";
+    });
+
+    $("#all_cases").html(htmlStr);
+}
+
+show_all_cases()
+</script>
+
+
+
+</body>
+</html>

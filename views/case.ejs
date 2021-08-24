@@ -6,13 +6,16 @@
 
 <link rel="stylesheet" href="/V2/css/styles.css">
 <style>
-    
+    div.qr {
+        text-align:center;
+        float:right;
+    }
     #qrcode img{
         width:128px;
         margin: 0 auto;
     }
     @media only screen and (max-width: 800px) {
-        #qrcode{
+        div.qr{
           display:none;
         }
     }
@@ -28,9 +31,15 @@
 <div class="paper">
 
 <h1>
+
+<div id="qrcode" class="qr"></div>
+R2W /  
 <a href="/V2/listall.html">Index</a>
 / 
 Case ID: <%= caseID; %>
+
+
+
 </h1>
 
     <div class="panel2">
@@ -43,9 +52,6 @@ Case ID: <%= caseID; %>
         </div>
         
         <div id="case_attributes_debug" class="debug"></div>
-    </div>
-    <div class="panel2">
-        <div id="qrcode"></div>
     </div>
 
 </div>
@@ -89,10 +95,10 @@ function get_case_by_id(){
     
     $("#case_attributes").html(makeform(data,[
         {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
-        {key:"applicant",label:"Applicant",type:"text",placeholder:"Internal identifier"},
-        {key:"Location",label:"Location",type:"text",placeholder:"Municipality"},
+        {key:"secretary",label:"Secretary",type:"text",placeholder:"Internal identifier"},
+        {key:"Location",label:"Ward name",type:"text",placeholder:"Municipality"},
         {key:"notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"},
-        {key:"dateLogged",label:"dateLogged",type:"hidden"},
+        //{key:"dateLogged",label:"dateLogged",type:"hidden"},
         {key:"caseID",label:"caseID",type:"hidden"}
     ]));
     
@@ -157,6 +163,13 @@ function get_timeline_data(update){
 
                 ctl.view_extent();
             }
+        }else{
+            //nothing found in the case itself, prompt user 
+            tmpnodes = [ctl.data.nodes[0]];
+            ctl.data.nodes = tmpnodes;
+            ctl.data.nodes[0].properties.Label = "Placeholder: Click to add an event"
+            ctl.data.edges = []
+            ctl.update();
         }
     });
 }
@@ -227,7 +240,7 @@ function item_clicked(d){
     })
     
     //////////////////////////////////////
-    
+    scrollTo("#event");
     
     
 }
@@ -280,6 +293,9 @@ function update_event_record(){
                         if(d.status){
                             $("#update_event_status").html(`updated`);
                             get_timeline_data(1); //update ctl
+                            
+                            $("#manage_event").html("Select an item in the timeline to add or edit");
+                            $("#manage_event_btn").hide();
                         }
                     }else{
                         $("#update_event_status").html("error");
@@ -301,8 +317,8 @@ function update_event_record(){
 
 
 <div class="paper">
-    <h2>Manage event</h2>
-    <div id="manage_event" class="FForm">Select an item in the timeline to edit</div>
+    <h2 id="event">Manage event</h2>
+    <div id="manage_event" class="FForm">Select an item in the timeline to add or edit</div>
     <div id="manage_event_btn" style="display:none;text-align:right">
         <span id="update_event_status"></span>
         <button onclick="update_event_record()">Update record</button>
