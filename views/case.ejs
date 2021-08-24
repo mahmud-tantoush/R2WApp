@@ -3,7 +3,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>R2W case: <%= caseID; %></title>
-
+<!-- <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"> -->
+<link rel="stylesheet" href="/V2/css/jquery-ui.min.css">
 <link rel="stylesheet" href="/V2/css/styles.css">
 <style>
     div.qr {
@@ -23,7 +24,11 @@
 
 <script src="/V2/js/qrcode.min.js"></script>
 <script src="/V2/js/jquery.min.js"></script>
+<!-- <script src="https://code.jquery.com/jquery-1.12.4.js"></script> -->
 <script src="/V2/js/R2W.js"></script>
+<!-- <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script> -->
+<script src="/V2/js/jquery-ui.min.js"></script>
+
 
 </head>
 <body>
@@ -34,13 +39,12 @@
 
 <div id="qrcode" class="qr"></div>
 R2W /  
-<a href="/V2/listall.html">Index</a>
+<a href="/V2">Index</a>
 / 
 Case ID: <%= caseID; %>
 
-
-
 </h1>
+
 
     <div class="panel2">
         <h2>Case attributes</h2>
@@ -96,7 +100,8 @@ function get_case_by_id(){
     $("#case_attributes").html(makeform(data,[
         {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
         {key:"secretary",label:"Secretary",type:"text",placeholder:"Internal identifier"},
-        {key:"Location",label:"Ward name",type:"text",placeholder:"Municipality"},
+        //{key:"secretary_number",label:"Number",type:"number",placeholder:""},
+        {key:"Location",label:"Ward name",type:"text",placeholder:"Ward name"},
         {key:"notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"},
         //{key:"dateLogged",label:"dateLogged",type:"hidden"},
         {key:"caseID",label:"caseID",type:"hidden"}
@@ -168,6 +173,7 @@ function get_timeline_data(update){
             tmpnodes = [ctl.data.nodes[0]];
             ctl.data.nodes = tmpnodes;
             ctl.data.nodes[0].properties.Label = "Placeholder: Click to add an event"
+            ctl.data.nodes[0].draw.status = "template"
             ctl.data.edges = []
             ctl.update();
         }
@@ -184,7 +190,8 @@ var eventID = null;
 
 function item_clicked(d){
     eventID = d.id;
-
+    $("#update_event_status").html("");
+    
     var data = d.properties;
     var manage_form = makeform(data,[
         {key:"Label",label:"Label",type:"text"},
@@ -199,10 +206,16 @@ function item_clicked(d){
     
     $("#manage_event_btn").show()
     
+    
+    if (d.draw.status == "template"){
+        $("#btn_del").hide()
+    }else{
+        $("#btn_del").show()
+    }
     //////////////////////////////////////
     //set visibility based on content in client
     //var completed = $("#manage_event #Completed").val();
-    function check_completed(){
+    function completed_change(){
          var completed = $("#manage_event #Completed").is(":checked");
         if (!completed){
              $("#manage_event .row-eventDueDate").show();
@@ -214,9 +227,9 @@ function item_clicked(d){
              $("#manage_event .row-eventCompletedDate").show();
         }
     }
-    check_completed();
+    completed_change();
     $("#manage_event #Completed").on('change', function(d){
-        check_completed();
+        completed_change();
     })
     //update due date if expected duration changes
     function modify_due_date(){
@@ -242,8 +255,20 @@ function item_clicked(d){
     //////////////////////////////////////
     scrollTo("#event");
     
-    
+    init_auto_complete();
 }
+
+function init_auto_complete(){
+
+    //todo: load this from templateA
+    var availableTags = [
+      "Awareness", "Nal Committee Formation", "Secretary Selection", "Document Collection", "Signature / thumbprints on the documents", "Create Settlement Map", "Filling Online form", "LP Authorisation and signature on documents ", "Challan ", "Photocopy of the File", "Dispatch orginal File", "Visit Confirmation by JE", "Response Letter_JE", "JE Visit", "Document Verification", "JE Report", "MS Site Visit", "MS Report to JE", "File passed to AE for approval of P form", "P Form Conditional ", "P Form", "Condition: Individual tap water permission", "Condition: ", "P Form + C Form LP signature", "Road Permision ", "Challan for Road Permission", "Challan for Road Permission Photocopy", "AE, SE, JE Maintenace signature - Road permission", "Challan for Road Permission Photocopy attach to PHS file", "Deposit of tap connection to be paid", "Photo copy of the Deposit reciept to be attached to the PHS file", "Original Reciept to be handed over to Nal Committee Secretary ", "C Form Nal Secretary signature", "SEWW signature on C Form", "HC BIlling signature on C Form", "Inform Nal committee for Meter connection", "Meter card to be signed by SEWW", "Form No. 32 to be filled and attached to the original file", "File certification by AE and SEWW", "Work order by JE Water Chowki", "JE to sign the file in Water Chowki", "Nal Committee to be ready with pipes and plumber", "Trench - Gang from water chowki", "Connection installed"
+    ];
+    $("#manage_event #Label").autocomplete({
+      source: availableTags
+    });
+}
+
 
 function update_event_record(){
     if (eventID){
@@ -321,16 +346,40 @@ function update_event_record(){
     <div id="manage_event" class="FForm">Select an item in the timeline to add or edit</div>
     <div id="manage_event_btn" style="display:none;text-align:right">
         <span id="update_event_status"></span>
+        <button id="btn_del" onclick="delete_event_record()">Delete record</button>
         <button onclick="update_event_record()">Update record</button>
     </div>
 
-
+<!--
+<p>
+    todo: 
+    <li>add a follow up on the selected Event</li>
+    <li>delete Event</li>
+    <li>connect Event-Event once something is disconnected</li>
+ -->
 </div>
 
 <br>
 <br>
 <br>
 
+<script>
+function delete_event_record(){
+
+    if (confirm('Delete?')) {
+        delete_event(eventID);
+        
+    } 
+    
+}
+
+function delete_event(id){
+    if (!isNaN(id)){
+        var url = `/api/v1/cases/event/${id}`;
+        jqxhr = del(url,{},function(d){get_timeline_data(0);console.log(d)});
+    }
+}
+</script>
 
 </body>
 </html>

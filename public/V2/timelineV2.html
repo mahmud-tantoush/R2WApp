@@ -8,7 +8,7 @@
 <title>NetworkTimeline</title>
 
 <script src="/V2/js/d3.v4.min.js"></script>
-<script src="/V2/js/jquery.min.js"></script>
+<!-- <script src="/V2/js/jquery.min.js"></script> -->
 <script src="/V2/js/underscore-min.js"></script>
 <script src="/V2/js/Math.uuid.js"></script>
 
@@ -104,6 +104,7 @@ rect.planned, rect.template{
 }
 rect.template{
   stroke-dasharray: 5;
+  opacity:0.5;
 }
 
 /* axis */
@@ -310,7 +311,7 @@ NetworkTimeline.prototype.handleItemMouseOver = function(d, i) {
       
       
     //tooltip text
-    tooltipObj.html("click to edit: "+ d.id)	//d.draw.status.toUpperCase()
+    tooltipObj.html("click to edit<br>"+ d.id)	//d.draw.status.toUpperCase()
       .style("left", function(d){
         if (d3.event.pageX > window.innerWidth-tooltipWidth+10){
           return (d3.event.pageX-tooltipWidth-10) + "px"
@@ -664,6 +665,9 @@ function process_data(data){
             error.push("Expected_Duration or eventCompletedDate")
         }
         if (!error.length){
+        
+            if (enddate-startdate == 0){ enddate = addDays(startdate,1); }
+        
             filtered_nodes[i]["draw"] = {startdate:startdate, enddate:enddate, status:status }
             cleaned_nodes.push(filtered_nodes[i]);
         }else{
@@ -707,7 +711,6 @@ function parse_template_node(endnode,data,i){
     eventDueDate = addDays(endnode.draw.enddate, duration)
     eventStartDate = endnode.draw.enddate
     tmpid = Math.uuid()
-    
     next_potential_event = { 
         node:
         {
@@ -761,9 +764,19 @@ function add_from_template(data){
                 //console.log(d);
                 template_addition = parse_template_node(endnode,d.next,i)
                 
-                data.nodes.push(template_addition.node)
-                data.edges.push(template_addition.edge)
+                
+            }else{
+            
+                ph = {
+                    Label: "Placeholder",
+                    eventCompletedDate: "2021-07-08",
+                    eventStartDate: "2021-07-01"
+                }
+                template_addition = parse_template_node(endnode,ph,i)
             }
+            
+            data.nodes.push(template_addition.node)
+            data.edges.push(template_addition.edge)
         })
         
         //ctl.update()

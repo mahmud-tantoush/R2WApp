@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+<title>
+R2W working document V2
+</title>
+<Script src="js/jquery.min.js"></script>
+
+<Script src="js/R2W.js"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+
+<style>
+
+
+
+/* working only */
+#result{
+  width:100%;
+  height:80%;
+}
+.panel{
+  float:left;
+  width:50%;
+  height:100vh;
+}
+</style>
+<body>
+
+
+<div class="panel" style="overflow:hidden;overflow-y:scroll">
+<div class="textbox">
+
+<h1>R2W working document</h1>
+api/v1
+<br>
+<a href="https://docs.google.com/spreadsheets/d/1cwHtcPcrVj0kQ3q24R3_gFuaWVtwL6Uz/edit#gid=1333953872">working spreadsheet for end-points</a>
+<br>
+<a href="/">The prototype (MT working db)</a><br>
+<a href="http://eric.myvnc.com/R2WApp/client">The prototype (db on eric.myvnc.com)</a><br>
+<a href="http://192.168.1.200/R2WApp_local/client">The prototype (local network only)</a>
+
+<hr>
+<h3>Templates</h3>
+using ejs template (npm install ejs)
+<br>
+<a href="/view/case/20000">view/case/[caseID]</a>
+<br>
+<a href="/view/event/10000">view/event/[eventID]</a> (for ajax load)
+<br>
+<a href="/view/20000/10000">view/[caseID]/[eventID]</a> (for full case-event)
+
+<hr>
+
+caseID: <input id="caseid" value="10000" onchange="makeQR();makelink()">
+<div id="linkDiv"></div>
+
+
+<hr>
+generate QR code with caseID
+
+
+<script src="js/qrcode.min.js"></script>
+<div id="qrcode"></div>
+<script type="text/javascript">
+var data = "view/case/"+$("#caseid").val();
+var qrcode = new QRCode("qrcode", {text:data, width: 128, height: 128});
+
+function makeQR(){
+    //$("#qrcode").html('')
+    var data = "view/case/"+$("#caseid").val();
+    qrcode.clear();
+    qrcode.makeCode(data);
+}
+makeQR()
+function makelink(){
+var caseid = $("#caseid").val();
+var data = "/view/case/"+caseid;
+$("#linkDiv").html(`<a href=${data}>${caseid}</a>`);
+}
+
+</script>
+<p>
+
+Scan with <a href="qr.html">QR code reader</a> to view case (works best on a mobile device)
+
+
+<hr>
+
+<h2>Case specific</h2>
+
+<h4>List all cases [GET] <button onclick="get('/api/v1/cases/getcases');show_all_cases()">try</button></h4>
+
+<a href="/api/v1/cases/getcases">example</a>
+
+<script>
+function show_all_cases(){
+  var url = `/api/v1/cases/getcases`;
+  jqxhr = get(url,_show_all_cases);
+}
+function _show_all_cases(data){
+    var htmlStr = ""
+    $.each(data, function(i,d){
+        htmlStr += `<button onclick='setCurrentCase("${d.properties.caseID}");'>`;
+        htmlStr += d.properties.caseID; //aplicant, phsVolunteer, notes, Location, dateLogged
+        console.log(d.properties)
+        htmlStr += "</button>";
+    });
+
+    $("#all_cases").html(htmlStr);
+}
+function setCurrentCase(caseID){
+    $("#caseid").val(caseID)
+    makeQR();
+    makelink();
+}
+
+
+</script>
+<div id="all_cases"></div>
+
+
+
+
+<script>
+
+</script>
+
+<h4>Get case by caseID [GET] <button onclick="get_case_by_id()">try</button></h4>
+(attributes within a case only)
+
+<a href="/api/v1/cases/getcase/10000">example</a>
+
+<h4>Add a case [POST]</h4>
+note: also need to check and show if a case already exists
+<p>
+/api/v1/cases/createcase
+<p>
+new caseID: <input id="newcaseid" value="" placeholder="type here" onkeyup="check_duplicate_caseid()"><span id="duplicate_caseid"></span>
+<br>
+<button onclick="new_case()">Add</button>
+
+
+<script>
+function new_case(){
+  var url = `/api/v1/cases/createcase`;
+  var id = $("#newcaseid").val();
+  if (id){
+      data = {caseID: id, applicant: 'Applicant', Location: 'Location',phsVolunteer: 'PHS ', dateLogged : 'Fri Aug 20 2021 16:51:25 GMT+0100 (British Summer Time)', notes : 'note'}
+      jqxhr = post(url,data,inspectJSON);
+  }
+}
+function check_duplicate_caseid(){
+    var id = $("#newcaseid").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,show_duplicate_caseid);
+    }
+}
+function show_duplicate_caseid(data){
+    if (Number(data) == 0){
+        $("#duplicate_caseid").html("OK");
+    }else{
+        $("#duplicate_caseid").html("caseID already exists - view case?");
+    }
+}
+
+function caseexists(){
+    var id = $("#newcaseid").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,inspectJSON);
+    }else{
+        $("#newcaseid").focus()
+    }
+}
+</script>
+
+<h4>Check if a caseID already exists <button onclick="caseexists()">try</button></h4>
+/api/v1/cases/caseexists/${id}
+
+<h4>Edit attributes within a case [POST]</h4>
+note: keep existing properties, update the ones from post + do not update certain keys e.g. caseID
+<br>
+/updatecase/:caseID
+
+<h4>View all events by caseID [GET] <button onclick="get_caseevent_by_id()">try</button>
+</h4>
+/api/v1/cases/getcaseevent/${id}
+<br>
+<a href="http://eric.myvnc.com/app/n4j/timeline.html?id=10000">timeline view of case-events (php-based prototype only)</a><br>
+<a href="http://192.168.1.200/app/n4j/timeline.html?id=10000">timeline view of case-events (php-based prototype only) [local network only]</a><br>
+<a href="caseevent_timeline.html?id=10000">timeline view of case-events (view only, migrating to new backend)</a>
+
+
+<hr>
+
+<h2>Event specific</h2>
+
+<h4>View event by eventID [GET]</h4>
+
+<h4>Add event to case [POST]</h4>
+
+<h4>Edit event by eventID [POST]</h4>
+/updateevent/:eventID
+
+
+<h4>Delete event by eventID [GET]</h4>
+
+<h4>Add relation between events [POST]</h4>
+
+<h4>Delete relation between events [GET]</h4>
+
+
+<hr>
+<h2>Case-event Template</h2>
+references
+see 00001<br>
+<a href="https://docs.google.com/presentation/d/19wD09fd7tcFbFPS6TnG7oLkofDzq7oid/edit#slide=id.p38">ppt</a><br>
+<a href="https://docs.google.com/spreadsheets/d/1_IPQS_AG5Z4rOCJ-T5uhRMQzEBS93PQL/edit?usp=drive_web&ouid=111476667526171364397&rtpof=true">R2W Events 050821</a> <br>
+
+<p>
+copy and paste from spreadsheet (tab-delimited values)
+<textarea id="case_event_template" style="width:100%">Label	Completed	eventStartDate	eventCompletedDate	eventDueDate	Expected_Duration
+Awareness 	TRUE	2020-01-01	2020-01-08	2020-01-08	7
+Nal Committee Formation	TRUE	2020-01-08	2020-01-15	2020-01-15	7
+Secretary Selection	TRUE	2020-01-15	2020-01-22	2020-01-22	7
+Document Collection	TRUE	2020-01-22	2020-01-29	2020-01-29	7
+Signature / thumbprints on the documents	TRUE	2020-01-29	2020-02-05	2020-02-05	7
+Create Settlement Map	TRUE	2020-02-05	2020-02-12	2020-02-12	7
+Filling Online form 	TRUE	2020-02-12	2020-02-19	2020-02-19	7
+LP Authorisation and signature on documents 	TRUE	2020-02-19	2020-02-26	2020-02-26	7
+Challan 	TRUE	2020-02-26	2020-03-04	2020-03-04	7
+Photocopy of the File	TRUE	2020-03-04	2020-03-11	2020-03-11	7
+Dispatch orginal File	TRUE	2020-03-11	2020-03-18	2020-03-18	7
+Visit Confirmation by JE	TRUE	2020-03-18	2020-03-25	2020-03-25	7
+Response Letter_JE	TRUE	2020-03-25	2020-04-01	2020-04-01	7
+JE Visit	TRUE	2020-04-01	2020-04-08	2020-04-08	7
+Document Verification	TRUE	2020-04-08	2020-04-15	2020-04-15	7
+JE Report	TRUE	2020-04-15	2020-04-22	2020-04-22	7
+MS Site Visit	TRUE	2020-04-22	2020-04-29	2020-04-29	7
+MS Report to JE	TRUE	2020-04-29	2020-05-06	2020-05-06	7
+File passed to AE for approval of P form	TRUE	2020-05-06	2020-05-13	2020-05-13	7
+P Form Conditional 	TRUE	2020-05-13	2020-05-20	2020-05-20	7
+P Form	TRUE	2020-05-20	2020-05-27	2020-05-27	7
+Condition: Individual tap water permission	TRUE	2020-05-27	2020-06-03	2020-06-03	7
+Condition: 	TRUE	2020-06-03	2020-06-10	2020-06-10	7
+P Form + C Form LP signature	TRUE	2020-06-10	2020-06-17	2020-06-17	7
+Road Permision 	TRUE	2020-06-17	2020-06-24	2020-06-24	7
+Challan for Road Permission	TRUE	2020-06-24	2020-07-01	2020-07-01	7
+Challan for Road Permission Photocopy	TRUE	2020-07-01	2020-07-08	2020-07-08	7
+AE, SE, JE Maintenace signature - Road permission	TRUE	2020-07-08	2020-07-15	2020-07-15	7
+Challan for Road Permission Photocopy attach to PHS file	TRUE	2020-07-15	2020-07-22	2020-07-22	7
+Deposit of tap connection to be paid	TRUE	2020-07-22	2020-07-29	2020-07-29	7
+Photo copy of the Deposit reciept to be attached to the PHS file	TRUE	2020-07-29	2020-08-05	2020-08-05	7
+Original Reciept to be handed over to Nal Committee Secretary 	TRUE	2020-08-05	2020-08-12	2020-08-12	7
+C Form Nal Secretary signature	TRUE	2020-08-12	2020-08-19	2020-08-19	7
+SEWW signature on C Form	TRUE	2020-08-19	2020-08-26	2020-08-26	7
+HC BIlling signature on C Form	TRUE	2020-08-26	2020-09-02	2020-09-02	7
+Inform Nal committee for Meter connection	TRUE	2020-09-02	2020-09-09	2020-09-09	7
+Meter card to be signed by SEWW	TRUE	2020-09-09	2020-09-16	2020-09-16	7
+Form No. 32 to be filled and attached to the original file	TRUE	2020-09-16	2020-09-23	2020-09-23	7
+File certification by AE and SEWW	TRUE	2020-09-23	2020-09-30	2020-09-30	7
+Work order by JE Water Chowki	TRUE	2020-09-30	2020-10-07	2020-10-07	7
+JE to sign the file in Water Chowki	TRUE	2020-10-07	2020-10-14	2020-10-14	7
+Nal Committee to be ready with pipes and plumber	TRUE	2020-10-14	2020-10-21	2020-10-21	7
+Trench - Gang from water chowki	TRUE	2020-10-21	2020-10-28	2020-10-28	7
+Connection installed	TRUE	2020-10-28	2020-11-04	2020-11-04	7
+
+</textarea>
+caseID for template: <input id="new_case_for_template" value="templateA">
+
+
+<button onclick="process_raw_data()">process to cypher</button>
+<br>
+test cyhper:<br>
+<textarea id="test_cypher" style="width:100%"></textarea>
+
+use temp: /api/v1/cases/addevent/$caseid
+
+<p>
+
+chain promise<br>
+1. first add the event to case<br>
+2. then resolve previous to new event (from the result in 1.) relationship
+
+<button onclick="chain_promise()">chain promise</button>
+<script>
+
+/*
+promise_post("/api/v1/cases/addevent/20001", tsv_to_json("#case_event_template")[0], inspectJSON).then((data) => {
+    alert(data)
+  })
+  .catch((error) => {
+    console.log(error)
+  })
+  
+.then((data) => {
+    console.log(data.data)
+})
+  
+*/
+
+function chain_promise(){
+    chain_list = []
+    event_list = tsv_to_json("#case_event_template")
+    var caseID = $("#new_case_for_template").val()
+    
+    for(var i = 0; i < event_list.length; i++){
+        chain_list.push(async_post("/api/v1/cases/addevent/"+caseID, event_list[i], function(d){} )) //note: the callback function does not exec in order
+    }
+    
+    //stores the result into the original json object
+    /*
+    function storeid(outputdata,inputdata){
+        inputdata['result'] = outputdata;
+        inputdata['id'] = outputdata.data;
+    }
+    */
+    
+    //https://stackoverflow.com/questions/16026942/how-do-i-chain-three-asynchronous-calls-using-jquery-promises
+    /*
+    function chainPromises(list) {
+        return list.reduce((chain, func) => chain ? chain.then(func) : func(), null);
+    }
+    chainPromises(chain_list).then(function (result) {
+        console.log('All done! ', result);
+        console.log(eventIDs);
+    });
+    */
+    
+    //add the nodes first
+    $.when(chain_list).done(function(d){
+    
+        console.log(d);
+        console.log("then");
+        
+         //resovle the edges second
+        edge_list = []
+        for(var i = 0; i < d.length; i++){
+            var id = d[i].responseJSON.data
+            event_list[i]["id"] = id;
+        }
+        
+        for(var i = 1; i < event_list.length; i++){
+            console.log("id" in event_list[i-1] && "id" in event_list[i])
+            //create a [NEXT] relation between i-1 and i
+            if ("id" in event_list[i-1] && "id" in event_list[i]){
+                payload = {startNodeId: event_list[i-1]['id'], endNodeId: event_list[i]['id']}
+                console.log(payload)
+                edge_list.push(async_post("/api/v1/cases/linkevents", payload))
+            }
+        }
+        console.log(edge_list)
+        //$.when(edge_list).done(function(dd) {
+        //    inspectJSON(dd);
+        //});
+    })
+    
+    
+    console.log("here");
+    
+    /*
+    find the case, and the event with the right parameters
+
+    */
+}
+
+
+</script>
+
+<script>
+//convert tab seperated values to json where the first line is the header
+function tsv_to_json(domid){
+    var raw_input = $(domid).val().trim()
+
+    rows = raw_input.split("\n")
+    header = rows.shift().split("\t");
+
+    output_events = []
+
+    for(var idx in rows){
+        row = rows[idx]; //.trim()
+        row = row.split("\t");
+        
+        row_data = {}
+        
+        for (var i in row){
+            key = header[i]
+            value = row[i]
+            //custom formatting rules here
+            if(key == "Completed"){
+                value = value.toLowerCase()
+            }
+            if(key == "Label"){
+                value = value.trim(); //remove trailing whitespaces
+            }
+            row_data[key] = value
+        }
+        //console.log(row_data)
+        output_events.push(row_data)
+    }
+    console.log(output_events)
+    return output_events;
+}
+
+function cyhper_add_event(caseID,jsondata){
+
+    //var caseID = req.params.caseID;
+    var param = process_json_n4j(jsondata);
+    
+q = `MATCH (a) where a.caseID = '${caseID}'
+MERGE (b:Event ${param})
+MERGE (a) -[r1:HAS]-> (b)
+return ID(b)`;
+
+    return q;
+
+}
+
+
+
+function process_raw_data(){
+    var data = tsv_to_json("#case_event_template");
+    var caseID = $("#new_case_for_template").val()
+    
+    
+    q = cyhper_add_event(caseID,data[0]);
+    $("#test_cypher").val(q);
+    
+    
+    /*
+Some suggested revisions to the data structure:
+    
+First create a case using caseID, if it does not exist
+
+Find the caseID node
+
+MATCH (n) 
+WHERE n.caseID = '${caseID}'
+
+
+MATCH (a:Case {caseID: '${currentCaseID}'}) 
+CREATE (a) -[r:HAS]-> (b:Event ${n})
+
+MATCH (a) where ID(a) = {$eventID}
+CREATE (a) -[r:NEXT]-> (b:Event ${param})
+return a,b
+
+MATCH (a:Case {caseID: '${currentCaseID}'}) 
+CREATE b:Event ${n}
+
+//note remove quotes from key
+
+
+
+////////////////////////////////////
+MATCH (a) where a.caseID = '20001' return a
+////////////////////////////////////
+
+//First node
+MATCH (a) where a.caseID = '20001'
+CREATE (b:Event 
+    {
+        Label: "Awareness",
+        Completed: "true",
+        eventStartDate: "2020-01-01",
+        eventCompletedDate: "2020-01-08",
+        eventDueDate: "2020-01-08",
+        Expected_Duration: "7"
+    }
+) 
+CREATE (a) -[r:HAS]-> (b)
+return b
+
+//second node onwards connect both to case-[HAS]-event and event-[NEXT]-new event
+
+{$prev_eventID}
+////////////////////////////////////
+MATCH (a) where a.caseID = '20001'
+MATCH (pb) where ID(pb) = 180
+MERGE (b:Event 
+{
+    Label: "Nal Committee Formation",
+    Completed: "true",
+    eventStartDate: "2020-01-08",
+    eventCompletedDate: "2020-01-15",
+    eventDueDate: "2020-01-15",
+    Expected_Duration: "7"
+}
+)
+MERGE (a) -[r1:HAS]-> (b)
+MERGE (pb) -[r2:NEXT]-> (b)
+return b, r1, r2
+////////////////////////////////////
+
+Create [r:HAS] relation between n:Case and n:Event
+Create [r2:NEXT] relation between n:Event and n:Event
+
+
+
+    */
+}
+
+function process_json_n4j(jsondata){
+    return JSON.stringify(jsondata).replace(/"([^"]+)":/g, '$1:');
+}
+
+</script>
+
+
+
+<hr>
+<h2>Date time utilty</h2>
+
+get_timestamp_from_str(datestr)<br>
+get_date_from_str(datestr)<br>
+
+<textarea id="test_date_formats" style="width:100%;height:300px">
+2021-06-16
+16-06-2021
+06-16-2021
+06/16/2021
+16/06/2021
+Sat Jun 05 2021 17:01:01 GMT+0100 (British Summer Time)
+</textarea>
+<button onclick="test_date_formats()">check conversion</button>
+
+<script>
+
+
+function test_date_formats(){
+    var test = $("#test_date_formats").val().trim().split("\n");
+    
+    outputs = []
+    for(i in test){
+        var datestr = test[i]
+        outputs.push({
+                    datestr:datestr, 
+                    datetimeObj: get_date_from_str(datestr), 
+                    timestamp: get_timestamp_from_str(datestr)
+                    })
+
+    }
+    inspectJSON(outputs)
+}
+
+
+</script>
+
+<!--
+<hr>
+
+<h2>Generic test</h2>
+<button onclick="post_case_by_id()">test post request</button>
+
+<p>
+<pre>
+server.use(express.json()); //in server.js
+
+//post in cases.js
+router.post(`/post`, (req, res)=>{
+    console.log(req.body);      // your JSON
+    res.send(req.body);    // echo the result back
+})
+</pre>
+-->
+
+</div>
+</div>
+
+
+<div class="panel">
+Server response:<br>
+<textarea id="result"></textarea>
+</div>
+
+
+
+
+<script>
+
+//request json for a specific feature
+function get_case_by_id(){
+  var id = $("#caseid").val();
+  var url = `/api/v1/cases/getcase/${id}`;
+  jqxhr = get(url,inspectJSON);
+}
+
+function get_caseevent_by_id(){
+  var id = $("#caseid").val();
+  var url = `/api/v1/cases/getcaseevent/${id}`;
+  jqxhr = get(url,inspectJSON);
+}
+
+//process the return json for a specific feature in the UI
+function inspectJSON(data){
+  console.log(data);
+  
+  $("#result").html(JSON.stringify(data));
+}
+
+
+
+
+//
+function post_case_by_id(){
+  var id = $("#caseid").val();
+  //var url = `http://192.168.1.200/app/test/post.php`;
+  var url = `/api/v1/post`;
+  
+  data = {"id":id}
+  jqxhr = post(url,data,inspectJSON);
+  
+}
+
+/*
+//moved to R2W.js
+//////////////////////////////////////
+//fire a get request, returns jqxhr for promise
+function get(url,result_function){
+  var jqxhr = $.ajax( {
+      type:"GET",
+      url:url
+    } )
+    .done(function(d) {
+      if (result_function){
+        result_function(d);
+      }
+      else{
+        inspectJSON(d)
+      }
+    })
+    .fail(function() {
+      console.error( "Error get:" + url );
+    })
+  return jqxhr;
+}
+//////////////////////////////////////
+//fire a post request, returns jqxhr for promise
+function post(url,result_function,data){
+  //console.log(data);
+  var jqxhr = $.ajax( {
+      type:"POST",
+      url:url,
+      data:JSON.stringify(data),
+      contentType:"application/json",
+      dataType: "json"
+    } )
+    .done(function(d) {
+      if (result_function){
+        result_function(d);
+      }
+      else{
+        inspectJSON(d)
+      }
+    })
+    .fail(function() {
+      console.error( "Error get:" + url );
+    })
+  return jqxhr;
+}
+//////////////////////////////////////
+*/
+
+</script>
+
+<pre>
+QoL 
+timeline add next event based on tempalte (templateA)
+
+in timeline
+find all end nodes [done]
+
+find the node in templateA with the Label [done]
+find the next item in template A [done]
+
+add a temporary node as "template" [done]
+</pre>
+
+
+
+
+<script>
+function delete_event(id){
+  var url = `/api/v1/cases/event/${id}`;
+  jqxhr = del(url,{},inspectJSON);
+}
+
+function delete_case(id){
+  var url = `/api/v1/cases/case/${id}`;
+  jqxhr = del(url,{},inspectJSON);
+}
+
+</script>
+
+
+</body>
+</html>
