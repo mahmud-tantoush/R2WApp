@@ -2,7 +2,7 @@ var viz;
 
 var DBlist = []
 
-var session = driver.session();
+//var session = driver.session();
 
 function normalize(string) {
     return string.trim().toLowerCase();
@@ -200,23 +200,31 @@ closeDeleteCaseButton.onclick = function (){
 }
 
 confimDeleteCaseButton.onclick = function(){
-    var session = driver.session();
-    qstring = `MATCH (p:Case {caseID: '${currentCaseID}'}) 
-    CALL apoc.path.subgraphAll(p, {relationshipFilter: ">", minLevel: 0, maxLevel: 100 })
-    YIELD nodes
-    FOREACH (n IN nodes| detach delete n)`
-    session
-    .run(qstring)
-    .then(() => {
-        session.close();
-        console.log(qstring)
-        createCaseForm.innerHTML = `<h6><b>Case ${currentCaseID} deleted, Reloding</b></h6>`
-        document.location.reload(true)
-    })
-    .catch(e => {
-        console.log(qstring)
-        console.log('error with query')
-        session.close();
-        throw e
-    });
+    // qstring = `MATCH (p:Case {caseID: '${currentCaseID}'}) 
+    // CALL apoc.path.subgraphAll(p, {relationshipFilter: ">", minLevel: 0, maxLevel: 100 })
+    // YIELD nodes
+    // FOREACH (n IN nodes| detach delete n)`
+
+    $.ajax({
+        url: `/api/v1/cases/case/${currentCaseID}`,
+        type: 'DELETE',
+        contentType: 'application/json',
+        success: function(res){
+            console.log(res)
+            if(res.status == 1){
+                createCaseForm.innerHTML = "<h6><b>Case deleted, page is reloading</b></h6>"
+                document.location.reload(true)
+                //res.json({'Success': 1})
+            }
+            else{
+                createCaseForm.innerHTML = "<h6><b>Case not deleted, error with data sent to server</b></h6>"
+                console.log('error with prossessing form ')
+                //res.json({'Success': 0})
+            }
+        }})
+        .catch(e => {
+            console.log(e)
+            res.send(e)
+        });
+
 }
