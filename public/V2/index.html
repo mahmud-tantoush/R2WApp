@@ -43,7 +43,7 @@ button.del{
         <h2>Cases</h2>
         <div id="all_cases">Loading...</div>
         <p>
-        note: this is a sandbox at the moment, see caseID after 20000 for latest implementation<br>
+        note: this is a sandbox at the moment, see caseID after 20000 for a demo of the latest implementation<br>
         todo: ways to navigate when there are more records e.g. pagination / search<br>
         todo: dashboard showing summary of cases e.g. number of events recorded, current status etc
         
@@ -90,7 +90,7 @@ function caseexists(){
 }
 function inspectJSON(d){
     console.log(d)
-    $("#update_case_status").html(d.message);
+    $("#update_case_status").html(`${d.message}: <a href="/view/case/${d.data}">${d.data}</a>`);
     show_all_cases();
 }
 //////////////////////////////////////////

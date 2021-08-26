@@ -33,9 +33,9 @@
 
 .tooltip{
 	position: absolute;			
-	text-align: center;			
-	width: 150px;					
-	height: 40px;					
+	
+	width: 100px;					
+	height: 30px;					
 	padding: 0;
 	background: #000;
 	font: 11px sans-serif;		
@@ -43,9 +43,15 @@
 	border: 0px;		
 	pointer-events: none;			
 	opacity:0;
+    display:table;
+
+}
+.tooltip div{
     display:table-cell;
+    text-align: center;	
     vertical-align:middle;
 }
+
 
 /* links and marker on links*/
 .links, .path-links{
@@ -158,6 +164,7 @@ var NetworkTimeline = function(containerid, data){
     thisGraph.svg = d3.select(thisGraph.containerid);
     //thisGraph.svgWidth = 1000;
     //thisGraph.svgHeight = 300;
+    //thisGraph.svg = thisGraph.svgRoot.append("g")
     
     thisGraph.set_size();
 
@@ -195,23 +202,63 @@ var NetworkTimeline = function(containerid, data){
     
     //handle zoom events
     thisGraph.scaleX = thisGraph.x;
-    thisGraph.currentTransform;
+    thisGraph.currentTransform = d3.zoomTransform(thisGraph.svg);
+    
+    thisGraph.transform = d3.zoomIdentity
+        .translate(0,0)
+        .scale(1)
+        .translate(0,0);
+    
     
     thisGraph.zoom = d3.zoom()
             .extent([[0, 0], [thisGraph.svgWidth, thisGraph.svgHeight]])
             .scaleExtent([0.3, 20])
             //.translateExtent([[-thisGraph.width*10, -thisGraph.height*20], [thisGraph.width*10, thisGraph.height*20]])
-            .on("zoom",zoomed); 
-        
+            .translateExtent([[-3000, 0], [3000, 0]])
+            .on("zoom",zoomed)
+            //.on("wheel.zoom", wheeled)
+            
+    
+    
     thisGraph.svg.call(thisGraph.zoom);
+    //thisGraph.svg.call(thisGraph.zoom.transform, thisGraph.transform);
+    
     function zoomed() {
-        //console.log("zoomed");
+        console.log("zoomed");
+        //issue: on mobile devices, sometimes panning triggers zoom (chanes in transform.k) when abs(x) or abs(y)is large
+        
+        //console.log(d3.event.transform);
+        console.log(d3.zoomTransform(this));
+        
+        //touchevent?
+        console.log(d3.touches(this))
+        ///*
+        if (thisGraph.data.nodes.length > 0){
+            xform = d3.zoomTransform(this)
+        
+            thisGraph.currentTransform.x = xform.x;
+            thisGraph.currentTransform.y = xform.y;
+            
+            if (d3.touches(this).length != 1){
+                thisGraph.currentTransform.k = xform.k;
+            }
+            thisGraph.scaleX = thisGraph.currentTransform.rescaleX(thisGraph.x);
+            thisGraph.redraw();
+        }
+        //*/
+        //thisGraph.scaleX = thisGraph.transform.rescaleX(thisGraph.x);
+        //thisGraph.redraw();
+        
+        /*
         if (thisGraph.data.nodes.length > 0){
             thisGraph.scaleX = d3.event.transform.rescaleX(thisGraph.x);
             thisGraph.currentTransform = d3.event.transform;
             thisGraph.redraw();
         }
+        */
     }
+
+    
     
     //draw a line today (client datetime)
     thisGraph.svg.append("line").classed("now",true)
@@ -302,8 +349,13 @@ NetworkTimeline.prototype.handleItemClick = function(d, i) {
 NetworkTimeline.prototype.handleItemMouseOver = function(d, i) { 
     //console.log(d)
     //tooltip
-    var tooltipObj = d3.select(".tooltip");
-    tooltipWidth = tooltipObj.node().getBoundingClientRect().width;
+    var tooltipObj = d3.select(".tooltip")
+    var obj = tooltipObj.node().getBoundingClientRect();
+    //var item = d3.select(this)
+    //var yPos = item.attr("y")
+    var pos = d3.select(this).node().getBoundingClientRect();
+    
+    posX = (pos.width-obj.width)/2+pos.x
     
     tooltipObj.transition()		
       .duration(200)		
@@ -311,16 +363,19 @@ NetworkTimeline.prototype.handleItemMouseOver = function(d, i) {
       
       
     //tooltip text
-    tooltipObj.html("click to edit<br>"+ d.id)	//d.draw.status.toUpperCase()
+    tooltipObj.html(`<div>click to edit<br> ${d.id}</div>`)	//d.draw.status.toUpperCase()
       .style("left", function(d){
-        if (d3.event.pageX > window.innerWidth-tooltipWidth+10){
-          return (d3.event.pageX-tooltipWidth-10) + "px"
+        //if (d3.event.pageX > window.innerWidth-obj.width+10){
+        if (posX > window.innerWidth-obj.width+10){
+          return (d3.event.pageX-obj.width-10) + "px"
         }
         else{
-          return (d3.event.pageX+10) + "px"
+          //return (d3.event.pageX) + "px"
+          return (posX ) + "px"
         }
       })		
-      .style("top", (d3.event.pageY-30) + "px");	
+      //.style("top", (d3.event.pageY-30) + "px");	
+      .style("top",(window.pageYOffset  + pos.y -50 ) + "px");	
 }
 NetworkTimeline.prototype.handleItemMouseOut = function(d, i) { 
       var thisGraph = this;

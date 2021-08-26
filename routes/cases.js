@@ -332,7 +332,7 @@ router.post(`/createcase`, (req, res)=>{
 })
 
 
-//get
+//get case event
 router.get(`/getcaseevent/:caseID`, (req, res)=>{
     //console.log('/api/v1/getcase/:case link works')
     console.log(req.params)
@@ -408,6 +408,61 @@ RETURN  distinct collect([node]) as nodes, [relationships] as relationships`
       })
       
 })
+
+
+
+//get case event V2
+/*
+with the new structure where all Events are linked to a Case
+Case-[:HAS]-> Event
+Event-[:NEXT]-> Event
+
+we can run a simple cyhper query like this
+
+MATCH (a {caseID:"20000"})-[:HAS]->(b)-[r:NEXT]->() RETURN COLLECT(DISTINCT b) as nodes ,COLLECT(DISTINCT r) as edges
+
+*/
+
+router.get(`/getcaseeventV2/:caseID`, (req, res)=>{
+    //console.log('/api/v1/getcase/:case link works')
+    console.log(req.params)
+    
+    var caseID = req.params.caseID;
+    
+    const session = driver.session()
+    q = `
+MATCH (a {caseID:"${caseID}"})-[:HAS]->(b)-[r:NEXT]->() 
+RETURN COLLECT(DISTINCT b) as nodes ,COLLECT(DISTINCT r) as edges
+`
+
+    //console.log(q)
+    session.run(q) 
+      .then(result => {
+        //console.log(result)
+        session.close();
+        
+        var nodes = result.records[0]._fields[0];
+        var edges = result.records[0]._fields[1];
+        
+        //convert identity to id - todo: needs tidy up
+        for (var i in nodes){
+            nodes[i].id = toNumber(nodes[i].identity)
+            delete nodes[i].identity
+        }
+        for (var i in edges){
+            edges[i].id = toNumber(edges[i].identity)
+            delete edges[i].identity
+        }
+        
+        res.send({nodes:nodes,edges:edges});
+      })
+      .catch(error => {
+        session.close();
+        res.send(error)
+      })
+      
+})
+
 
 
 //post
@@ -516,5 +571,85 @@ router.delete(`/case/:caseID`, (req, res)=>{
     
 })
 
+//temporary - needs review - create Event->Event relation    
+router.get(`/eventevent/:eventID1/:eventID2`, (req, res)=>{
+    //console.log('/api/v1/getcase/:case link works')
+    //console.log(req.params)
+    //console.log(req.body)
+    var sourceID = req.params.eventID1;
+    var targetID = req.params.eventID2;
 
+    /*
+    test
+    MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]-(c) where a.caseID = 'templateA' AND b.Label = "Connection Installed" return b,c;
+    */
+    const session = driver.session()
+    q = `
+MATCH (a) WHERE ID(a) = ${sourceID}
+MATCH (b) WHERE ID(b) = ${targetID}
+MERGE (a)-[r:NEXT]->(b)
+return r;
+    `
+    
+    //`MATCH (n:Case {caseID:'${req.params.caseID}'}) RETURN n`
+    console.log(q)
+    
+    session.run(q) 
+      .then(result => {
+
+        console.log(result.records)
+        session.close();
+        //res.json(result.records)
+        
+
+        res.json(result.records)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+
+
+//temporary - needs review  - delete Event->Event relation    
+router.delete(`/eventevent/:eventID1/:eventID2`, (req, res)=>{
+    //console.log('/api/v1/getcase/:case link works')
+    //console.log(req.params)
+    //console.log(req.body)
+    var sourceID = req.params.eventID1;
+    var targetID = req.params.eventID2;
+
+    /*
+    test
+    MATCH (a)-[r1:HAS]-(b)-[r2:NEXT]-(c) where a.caseID = 'templateA' AND b.Label = "Connection Installed" return b,c;
+    */
+    const session = driver.session()
+    q = `
+MATCH (a) WHERE ID(a) = ${sourceID}
+MATCH (b) WHERE ID(b) = ${targetID}
+MATCH (a)-[r:NEXT]->(b)
+DELETE r
+    `
+    
+    //`MATCH (n:Case {caseID:'${req.params.caseID}'}) RETURN n`
+    console.log(q)
+    
+    session.run(q) 
+      .then(result => {
+
+        console.log(result.records)
+        session.close();
+        //res.json(result.records)
+        
+
+        res.json(result.records)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
 module.exports = router;

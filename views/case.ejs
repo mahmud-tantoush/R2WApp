@@ -7,6 +7,20 @@
 <link rel="stylesheet" href="/V2/css/jquery-ui.min.css">
 <link rel="stylesheet" href="/V2/css/styles.css">
 <style>
+.ui-autocomplete {
+    max-height: 200px;
+    overflow-y: auto;
+    /* prevent horizontal scrollbar */
+    overflow-x: hidden;
+    }
+    /* IE 6 doesn't support max-height
+    * we use height instead, but this forces the menu to always be this tall
+    */
+* html .ui-autocomplete {
+    height: 200px;
+}
+
+
     div.qr {
         text-align:center;
         float:right;
@@ -187,8 +201,26 @@ load_timeline();
 
 // handle click on timeline items
 var eventID = null;
-
+var createlinkBln = 0;
 function item_clicked(d){
+
+    if(createlinkBln && eventID){
+        
+        get(`/api/v1/cases/eventevent/${eventID}/${d.id}`,function(d){
+            if (d.length){
+                $("#prompt").html("link created");
+            }else{
+                $("#prompt").html("link error");
+            }
+            get_timeline_data(1);
+            
+            
+        })
+        link_record_cancel()
+        return false;
+    }
+    
+    
     eventID = d.id;
     $("#update_event_status").html("");
     
@@ -204,13 +236,15 @@ function item_clicked(d){
     ])
     $("#manage_event").html(manage_form);
     
-    $("#manage_event_btn").show()
+    $(".manage_event_btn").show()
     
     
     if (d.draw.status == "template"){
         $("#btn_del").hide()
+        $("#btn_link").hide()
     }else{
         $("#btn_del").show()
+        $("#btn_link").show()
     }
     //////////////////////////////////////
     //set visibility based on content in client
@@ -320,7 +354,7 @@ function update_event_record(){
                             get_timeline_data(1); //update ctl
                             
                             $("#manage_event").html("Select an item in the timeline to add or edit");
-                            $("#manage_event_btn").hide();
+                            $(".manage_event_btn").hide();
                         }
                     }else{
                         $("#update_event_status").html("error");
@@ -344,12 +378,22 @@ function update_event_record(){
 <div class="paper">
     <h2 id="event">Manage event</h2>
     <div id="manage_event" class="FForm">Select an item in the timeline to add or edit</div>
-    <div id="manage_event_btn" style="display:none;text-align:right">
+    <div class="manage_event_btn" style="display:none;text-align:right">
         <span id="update_event_status"></span>
-        <button id="btn_del" onclick="delete_event_record()">Delete record</button>
-        <button onclick="update_event_record()">Update record</button>
+        <button id="btn_del" onclick="delete_event_record()">Delete Event</button>
+        <button onclick="update_event_record()">Update Event</button>
     </div>
-
+    
+    
+    <div class="manage_event_btn" style="display:none">
+    experimental:<br>
+    <button id="btn_link" onclick="link_record_init()">Link from Event to another</button>
+    <div id="prompt"></div>
+    <!--
+    to delete
+    del("/api/v1/cases/eventevent/SOURCE/TARGET",{},function(d){console.log(d)})
+    -->
+    </div>
 <!--
 <p>
     todo: 
@@ -364,6 +408,21 @@ function update_event_record(){
 <br>
 
 <script>
+function link_record_init(){
+    //show prompt
+    $("#prompt").html(`Select an Event in the timeline dependent on the this Event <button onclick="link_record_cancel()">cancel</button>`);
+    //set flag
+    createlinkBln = 1;
+    $('#btn_link').hide();
+
+}
+function link_record_cancel(){
+    createlinkBln=0;
+    $('#btn_link').show();
+    $("#prompt").html("");
+}
+
+
 function delete_event_record(){
 
     if (confirm('Delete?')) {
