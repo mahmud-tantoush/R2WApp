@@ -8,6 +8,7 @@ var notes = document.getElementById('notes')
 
 var errorElement = document.getElementById('error')
 
+
 /*
     console.log(applicant.value)
     console.log(loc.value)
