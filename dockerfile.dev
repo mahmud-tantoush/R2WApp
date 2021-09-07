@@ -1,0 +1,26 @@
+# base image
+
+# Note ensure you have downloaded the client folder and run npm run client-install
+
+FROM node:12
+# FROM node:12.2.0-alpine
+# FROM ubuntu
+
+# set working directory
+WORKDIR /app
+
+# add `/app/node_modules/.bin` to $PATH
+ENV PATH /app/node_modules/.bin:$PATH
+
+# install and cache app dependencies
+# COPY package.json /app/package.json
+# RUN npm install --silent
+RUN npm install -g nodemon --silent
+
+# COPY Server files
+# Ensure */node_modules is in .dockerignore
+# COPY ./ /app
+
+EXPOSE 5000
+# start app
+CMD ["npm", "server"]

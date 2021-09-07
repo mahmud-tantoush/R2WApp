@@ -5,11 +5,11 @@
   "main": "server.js",
   "scripts": {
     "client-install": "cd client && npm install",
-    "start": "node server.js",
-    "server": "nodemon server.js",
+    "start": "node app.js",
+    "server": "nodemon app.js",
     "client": "cd client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "cd client && npm run build",
+    "build": "webpack --config webpack.config.js",
     "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client"
   },
   "author": "",
@@ -22,6 +22,10 @@
     "ejs": "^3.1.6",
     "express": "*",
     "neo4j-driver": "*",
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.4",
+    "copy-webpack-plugin": "^6.3.2",
+    "webpack": "4.41.5",
+    "webpack-cli": "3.3.10",
+    "webpack-node-externals": "1.7.2"
   }
 }
