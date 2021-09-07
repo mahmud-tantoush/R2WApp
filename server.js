@@ -22,7 +22,7 @@ const serverInitialize = async () => {
     next();
   });
 
-  server.use(express.static(path.join(__dirname, "public")));
+  server.use(express.static(path.join(".", "public")));
 
   //middleware example
   // server.use(function (req, res, next) {
@@ -138,7 +138,7 @@ const serverInitialize = async () => {
 
   // all other api endpoints
   server.all("*", (req, res) => {
-    res.status(404).send("No such API exisits");
+    res.status(404).send("No such API exists");
   });
 
   //methods: app.[get post put delete all use listen]
