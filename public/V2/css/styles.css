@@ -27,6 +27,8 @@ a:hover{ color:gold}
 
 /*R2W styles */
 
+.hidden {display:none}
+
 .paper{
     width:80%;
     max-width:1280px;
@@ -48,7 +50,7 @@ a:hover{ color:gold}
     .panel2{
         width:100% !important;
     }
-    .FForm input, .FForm textarea{
+    .FForm label, .FForm input, .FForm textarea{
         width:100% !important;
     }
     .paper{
@@ -65,7 +67,7 @@ a:hover{ color:gold}
 
 
 /* form */
-input, textarea,button{
+input, textarea, button{
     padding:8px;
     font-size: 1.1em;
     background:#eee;

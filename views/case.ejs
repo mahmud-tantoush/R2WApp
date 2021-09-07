@@ -116,6 +116,7 @@ function get_case_by_id(){
         {key:"secretary",label:"Secretary",type:"text",placeholder:"Internal identifier"},
         //{key:"secretary_number",label:"Number",type:"number",placeholder:""},
         {key:"Location",label:"Ward name",type:"text",placeholder:"Ward name"},
+        {key:"link",label:"Link to files",type:"link",placeholder:"Link to files and documents"},
         {key:"notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"},
         //{key:"dateLogged",label:"dateLogged",type:"hidden"},
         {key:"caseID",label:"caseID",type:"hidden"}
@@ -126,7 +127,7 @@ function get_case_by_id(){
   });
 }
 function get_case_event(){
-  var url = `/api/v1/cases/getcaseevent/<%= caseID; %>`;
+  var url = `/api/v1/cases/getcaseeventV2/<%= caseID; %>`;
   jqxhr = get(url, function (data) {
     $("#case_events_debug").html(JSON.stringify(data));
   });
@@ -206,6 +207,20 @@ function item_clicked(d){
 
     if(createlinkBln && eventID){
         
+        if (eventID == d.id){
+            alert("self-loop disabled");
+            link_record_cancel()
+            return false;
+        }
+        //need review below
+        try{
+        if (_.find(ctl.data.nodes,{id:eventID}).draw.startX > _.find(ctl.data.nodes,{id:d.id}).draw.startX){
+            alert("past event depending on a future event disabled");
+            link_record_cancel()
+            return false;
+        }}
+        catch(e){console.warn(e)}
+        
         get(`/api/v1/cases/eventevent/${eventID}/${d.id}`,function(d){
             if (d.length){
                 $("#prompt").html("link created");
@@ -213,8 +228,7 @@ function item_clicked(d){
                 $("#prompt").html("link error");
             }
             get_timeline_data(1);
-            
-            
+
         })
         link_record_cancel()
         return false;
@@ -389,6 +403,13 @@ function update_event_record(){
     experimental:<br>
     <button id="btn_link" onclick="link_record_init()">Link from Event to another</button>
     <div id="prompt"></div>
+    <br>
+    known issues: 
+    <li>when connecting all the end nodes to form a complete loop, the button to add new event will not appear</li>
+    <li>todo: user input to remove links</li> <!--del("/api/v1/cases/eventevent/188/187")-->
+    <li>possible check for link sanity to avoid - 1. loop back onto itself, 2. loop back from a future event to a past event (i.e past event depends on the completion of a future event) </li>
+    
+    
     <!--
     to delete
     del("/api/v1/cases/eventevent/SOURCE/TARGET",{},function(d){console.log(d)})

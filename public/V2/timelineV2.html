@@ -231,10 +231,11 @@ var NetworkTimeline = function(containerid, data){
         console.log(d3.zoomTransform(this));
         
         //touchevent?
+        /*
         console.log(d3.touches(this))
-        ///*
         if (thisGraph.data.nodes.length > 0){
-            xform = d3.zoomTransform(this)
+        
+            xform = d3.event.transform //d3.zoomTransform(this)
         
             thisGraph.currentTransform.x = xform.x;
             thisGraph.currentTransform.y = xform.y;
@@ -242,20 +243,20 @@ var NetworkTimeline = function(containerid, data){
             if (d3.touches(this).length != 1){
                 thisGraph.currentTransform.k = xform.k;
             }
-            thisGraph.scaleX = thisGraph.currentTransform.rescaleX(thisGraph.x);
+            
             thisGraph.redraw();
         }
-        //*/
+        */
         //thisGraph.scaleX = thisGraph.transform.rescaleX(thisGraph.x);
         //thisGraph.redraw();
         
-        /*
+        ///*
         if (thisGraph.data.nodes.length > 0){
             thisGraph.scaleX = d3.event.transform.rescaleX(thisGraph.x);
             thisGraph.currentTransform = d3.event.transform;
             thisGraph.redraw();
         }
-        */
+        //*/
     }
 
     
@@ -522,7 +523,21 @@ NetworkTimeline.prototype.redraw = function() {
 				function(d){
 					return d.draw.y+60;
 				})
-			.text(function(d){ return d.properties.Label;}) //not ideal but force redraw when label changes
+                /*
+            .classed("hidden", function(d){
+                console.log((d.draw.endX-d.draw.startX) + " " +this.getComputedTextLength());
+                if ((d.draw.endX-d.draw.startX) > this.getComputedTextLength()){
+                    return false;
+                }  
+                else{
+                    return true;
+                }
+            })
+                */
+			.text(function(d){ 
+                return d.properties.Label;
+
+            }) //not ideal but force redraw when label changes
 			//.text(function(d){ return d.id + "-" + d.properties.Label;}) //not ideal but force redraw when label changes
     
     //redraw line now
