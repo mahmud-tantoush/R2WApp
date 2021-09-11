@@ -221,7 +221,7 @@ function makeform(jsonobj,config){
                 htmlStr += "</li>";
             }
             else{
-                htmlStr += `<input type="hidden" name="${item.key}" value="${value}" class="editor">`;
+                htmlStr += `<input type="hidden" id="${item.key}" name="${item.key}" value="${value}" class="editor">`;
             }
             
             

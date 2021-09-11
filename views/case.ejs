@@ -264,7 +264,7 @@ function item_clicked(d){
     //set visibility based on content in client
     //var completed = $("#manage_event #Completed").val();
     function completed_change(){
-         var completed = $("#manage_event #Completed").is(":checked");
+        var completed = $("#manage_event #Completed").is(":checked");
         if (!completed){
              $("#manage_event .row-eventDueDate").show();
              $("#manage_event .row-Expected_Duration").show();
@@ -286,7 +286,22 @@ function item_clicked(d){
     }
     $("#manage_event #Expected_Duration").on('change', function(d){
         modify_due_date()
+        
     })
+    
+    //check if completed date or due date is later than start date
+    function check_completed_date(){
+        var startdate = get_date_from_str($("#manage_event #eventStartDate").val())
+        var completedate = get_date_from_str($("#manage_event #eventCompletedDate").val())
+        if (completedate < startdate){
+            completedate = startdate;
+        }
+        $("#manage_event #eventCompletedDate").val(formatDate(completedate))
+    }
+    $("#manage_event #eventCompletedDate").on('change', function(d){
+        check_completed_date()
+    })
+    
     //update expected duration when due date changes
     function modify_expected_duration(){
         days = (get_date_from_str($("#manage_event #eventDueDate").val())-get_date_from_str($("#manage_event  #eventStartDate").val()))/86400000
@@ -403,13 +418,7 @@ function update_event_record(){
     experimental:<br>
     <button id="btn_link" onclick="link_record_init()">Link from Event to another</button>
     <div id="prompt"></div>
-    <br>
-    known issues: 
-    <li>when connecting all the end nodes to form a complete loop, the button to add new event will not appear</li>
-    <li>todo: user input to remove links</li> <!--del("/api/v1/cases/eventevent/188/187")-->
-    <li>possible check for link sanity to avoid - 1. loop back onto itself, 2. loop back from a future event to a past event (i.e past event depends on the completion of a future event) </li>
-    
-    
+
     <!--
     to delete
     del("/api/v1/cases/eventevent/SOURCE/TARGET",{},function(d){console.log(d)})
@@ -424,6 +433,17 @@ function update_event_record(){
  -->
 </div>
 
+<br>
+<br>
+<br>
+known issues: 
+<li>When connecting all the end nodes to form a complete loop, the button to add new event will not appear</li>
+<li>Todo: user input to remove links</li> <!--del("/api/v1/cases/eventevent/188/187")-->
+<li>Check for link sanity to avoid - 1. loop back onto itself, 2. loop back from a future event to a past event (i.e past event depends on the completion of a future event) </li>
+<li>It is possible to input completed date BEFORE the start date - which we may assume that is impossible in reality. Todo: sanity check will be put in place, Events with dates that does not make sense will be shown and tagged as "error"
+<li>It is possible to mark Event as Completed in the future - which we may assume that is impossible in reality. Todo: sanity check will be put in place
+    
+    
 <br>
 <br>
 <br>
@@ -449,6 +469,9 @@ function delete_event_record(){
     if (confirm('Delete?')) {
         delete_event(eventID);
         
+        //hide manage event
+        $("#manage_event").html("Select an item in the timeline to add or edit");
+        $(".manage_event_btn").hide();
     } 
     
 }

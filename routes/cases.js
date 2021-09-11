@@ -255,7 +255,7 @@ return ID(b)
 
 router.post(`/linkevents`, (req, res)=>{
     
-    var caseID = req.params.caseID;
+    //var caseID = req.params.caseID;
     var param = req.body;
     var startNodeId = param.startNodeId; //need error checking here
     var endNodeId = param.endNodeId; //need error checking here

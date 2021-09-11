@@ -112,6 +112,11 @@ rect.template{
   stroke-dasharray: 5;
   opacity:0.5;
 }
+rect.error{
+  fill: #f00 ;
+  stroke-dasharray: 5;
+  opacity:0.5;
+}
 
 /* axis */
 .tick .day{
@@ -228,7 +233,7 @@ var NetworkTimeline = function(containerid, data){
         //issue: on mobile devices, sometimes panning triggers zoom (chanes in transform.k) when abs(x) or abs(y)is large
         
         //console.log(d3.event.transform);
-        console.log(d3.zoomTransform(this));
+        //console.log(d3.zoomTransform(this));
         
         //touchevent?
         /*
@@ -454,11 +459,25 @@ NetworkTimeline.prototype.redraw = function() {
             //computed scaled duration (enddate-startdate) of the item, need error check for negative when enddate < startdate
             d.draw.endX = thisGraph.scaleX(d.draw.enddate);
             
-            return d.draw.endX-d.draw.startX; //note need to check for negative values
+            if ((d.draw.endX-d.draw.startX) <= 0 ){
+                //console.log("negative")
+                //console.log(d)
+                width = 200;
+                d.draw.status = "error";
+            }
+            else{
+                width = d.draw.endX-d.draw.startX;
+            }
+            
+            return width; //note need to check for negative values
         })
         .attr("rx", 20)
         .attr("ry", 20)
-        .attr("class", function (d){ return "item "+d.draw.status;})
+        .attr("class", function (d){ 
+        
+            return "item "+d.draw.status;
+        
+        })
         
     
     //Redraw links
@@ -825,29 +844,37 @@ function add_from_template(data){
     
     for (var i in endnodes){
         endnode = endnodes[i];
-        eventLabel = endnode.properties.Label;
-        //search in template for the next potential node
-        async_post(`/api/v1/cases/getnextevent/${templatecase}`, {Label:eventLabel}, function(d){
-     
-            console.log(endnode);
-            if(d.prev && d.next){
-                //console.log(d);
-                template_addition = parse_template_node(endnode,d.next,i)
+        console.log("endnode")
+        console.log(endnode)
+        
+        //check if endnode is sane
+    
+        if (endnode.draw.startdate <= endnode.draw.enddate){
+            eventLabel = endnode.properties.Label;
+            //search in template for the next potential node
+            async_post(`/api/v1/cases/getnextevent/${templatecase}`, {Label:eventLabel}, function(d){
+         
+                console.log(endnode);
+                if(d.prev && d.next){
+                    //console.log(d);
+                    template_addition = parse_template_node(endnode,d.next,i)
+                    
+                    
+                }else{
                 
-                
-            }else{
-            
-                ph = {
-                    Label: "Placeholder",
-                    eventCompletedDate: "2021-07-08",
-                    eventStartDate: "2021-07-01"
+                    ph = {
+                        Label: "Placeholder",
+                        eventCompletedDate: "2021-07-08",
+                        eventStartDate: "2021-07-01"
+                    }
+                    template_addition = parse_template_node(endnode,ph,i)
                 }
-                template_addition = parse_template_node(endnode,ph,i)
-            }
-            
-            data.nodes.push(template_addition.node)
-            data.edges.push(template_addition.edge)
-        })
+                
+                data.nodes.push(template_addition.node)
+                data.edges.push(template_addition.edge)
+            })
+        }
+        
         
         //ctl.update()
         //ctl.view_extent()
