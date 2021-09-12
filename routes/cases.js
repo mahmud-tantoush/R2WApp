@@ -430,8 +430,15 @@ router.get(`/getcaseeventV2/:caseID`, (req, res)=>{
     var caseID = req.params.caseID;
     
     const session = driver.session()
+    /*
     q = `
 MATCH (a {caseID:"${caseID}"})-[:HAS]->(b)-[r:NEXT]->() 
+RETURN COLLECT(DISTINCT b) as nodes ,COLLECT(DISTINCT r) as edges
+`
+*/
+q = `
+MATCH (a {caseID:"${caseID}"})-[:HAS]->(b)
+OPTIONAL MATCH (b)-[r:NEXT]->() 
 RETURN COLLECT(DISTINCT b) as nodes ,COLLECT(DISTINCT r) as edges
 `
 

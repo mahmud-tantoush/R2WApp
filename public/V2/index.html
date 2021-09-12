@@ -60,6 +60,7 @@ function new_case(){
   if (id){
       data = {caseID: id}
       jqxhr = post(url,data,inspectJSON);
+      //post("/api/v1/cases/createcase",{caseID: 'test'},function(d){console.log(d)});
   }else{
      $("#update_case_status").html("enter case reference");
   }
