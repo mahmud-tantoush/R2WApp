@@ -49,6 +49,8 @@ button.del{
         
         <h2>Other</h2>
         <a href="qr.html">QR code scanner to access specific case from printed QR code</a>
+        <p>
+        <a href="/api/action/user/logout">Logout</a> (this is api access, need to wrap it with some code)
     
     </div>
 </div>
@@ -60,6 +62,7 @@ function new_case(){
   if (id){
       data = {caseID: id}
       jqxhr = post(url,data,inspectJSON);
+      //post("/api/v1/cases/createcase",{caseID: 'test'},function(d){console.log(d)});
   }else{
      $("#update_case_status").html("enter case reference");
   }

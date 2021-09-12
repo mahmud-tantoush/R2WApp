@@ -58,7 +58,14 @@ R2W /
 Case ID: <%= caseID; %>
 
 </h1>
- (user role: admin)
+ (user role: editor)
+<p>
+todo:
+<li>check if this case is assigned to the current user</li>
+<li>if yes: then allow edit</li>
+<li>else: view only</li>
+<li>constrain fields with selected inputs</li>
+
 
     <div class="panel2">
         <h2>Case attributes</h2>
@@ -171,7 +178,7 @@ function load_timeline(){
     });
 }
 function get_timeline_data(update){
-    var url = `/api/v1/cases/getcaseeventV2/<%= caseID; %>`;
+    var url = `/api/v1/cases/getcaseevent/<%= caseID; %>`;
     jqxhr = get(url, function (data) {
         tmp = process_data(data);
         if (tmp.nodes.length > 0){

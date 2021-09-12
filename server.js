@@ -46,12 +46,54 @@ const serverInitialize = async () => {
   ///////////// view template: npm install ejs
   server.set("view engine", "ejs");
 
+  ////////////
+  // cannot pass req parameters through proxy, decode the cookie instead?
+  const jwt = require('jsonwebtoken');
+  const cookieParser = require('cookie-parser');
+  server.use(cookieParser());
+  const { SECRET, NEW_USER_KEY, CLIENT_KEY } = require('./auth/config');
+  ////////////
+
   server.get(`/view/case/:caseID`, (req, res) => {
-    res.render("case", { caseID: req.params.caseID }); //under views/case.ejs
+  
+    //add auth info here redirect to different views
+    console.log("view/case");
+    
+    
+    ////////////////////////////////////////////////////////////
+    /////////////// OPTION 1 with querystring passed on from proxy
+    console.log(req.query);
+    
+    
+    
+    ////////////////////////////////////////////////////////////
+    /////////////// OPTION 2 decode the jwt token, need same SECRET as login
+    const { token } = req.cookies;
+    
+    if (token){
+      const decoded = jwt.verify(token, SECRET);
+      console.log(decoded)
+      if (decoded.group == "ADMIN"){
+        res.render("case", { caseID: req.params.caseID }); //under views/case.ejs
+      }
+      if (decoded.group == "EDITOR"){
+        res.render("case_editor", { caseID: req.params.caseID }); //under views/case.ejs
+      }
+      //res.render("test", { req: decoded }); //under views/case.ejs
+    }
+    ////////////////////////////////////////////////////////////
+    
+    else{
+      res.send("Please login to proceed");
+    }
   });
+  
+  //not used
   server.get(`/view/event/:eventID`, (req, res) => {
     res.render("event", { eventID: req.params.eventID }); //under views/event.ejs
   });
+  
+  
   ///////////// view template end
 
   // // API not working - design to load temaplte data
