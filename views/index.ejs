@@ -1,0 +1,206 @@
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<head>
+<title>
+R2W V2
+</title>
+<Script src="/V2/js/jquery.min.js"></script>
+<Script src="/V2/js/underscore-min.js"></script>
+<Script src="/V2/js/R2W.js"></script>
+<link rel="stylesheet" href="/V2/css/styles.css">
+
+<style>
+.submit_container{display:block}
+button.del{
+    width:18px;
+    height:18px;
+    padding:0;
+    margin:0;
+    font-size:9pt;
+    float:right;
+}
+
+
+</style>
+<body>
+<div class="paper">
+    <h1>R2W / Index</h1>
+
+    
+    <div class="panel">
+        <h2>Add Case</h2>
+        <div id="new_case" class="FForm">Loading...</div>
+        
+        <div class="submit_container">
+            <span id="update_case_status"></span>
+            <button onclick="new_case()">Add</button>
+        </div>
+        
+    </div>
+    <div class="panel">
+        <h2>Cases</h2>
+        <div id="all_cases">Loading...</div>
+        <p>
+        note: this is a sandbox at the moment, see caseID after 20000 for a demo of the latest implementation<br>
+        todo: ways to navigate when there are more records e.g. pagination / search<br>
+        todo: dashboard showing summary of cases e.g. number of events recorded, current status etc
+        
+        <h2>Other</h2>
+        <a href="qr.html">QR code scanner to access specific case from printed QR code</a>
+        <p>
+        <%= JSON.stringify(user); %>
+        <br>
+        <a href="/api/action/user/logout">Logout</a> (this is api access, need to wrap it with some code)
+    
+        <button onclick="logout()">Logout</button>
+    
+    </div>
+</div>
+
+<script>
+function logout(){
+  get("/api/action/user/logout",function(d){ window.location.href='/' });
+}
+
+function new_case(){
+  var url = `/api/v1/cases/createcase`;
+  var id = $("#new_case #caseID").val();
+  if (id){
+      data = {caseID: id}
+      jqxhr = post(url,data,inspectJSON);
+      //post("/api/v1/cases/createcase",{caseID: 'test'},function(d){console.log(d)});
+  }else{
+     $("#update_case_status").html("enter case reference");
+  }
+}
+function check_duplicate_caseid(){
+    var id = $("#new_case #caseID").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,show_duplicate_caseid);
+    }
+}
+function show_duplicate_caseid(data){
+    if (Number(data) == 0){
+        $("#update_case_status").html("");
+    }else{
+        $("#update_case_status").html("caseID already exists");
+    }
+}
+
+function caseexists(){
+    var id = $("#newcaseid").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,inspectJSON);
+    }else{
+        $("#newcaseid").focus()
+    }
+}
+function inspectJSON(d){
+    console.log(d)
+    $("#update_case_status").html(`${d.message}: <a href="/view/case/${d.data}">${d.data}</a>`);
+    show_all_cases();
+}
+//////////////////////////////////////////
+function confirm_delete(id){
+    if (confirm('Delete caseID: '+ id +"?")) {
+        delete_case(id)
+    } 
+}
+
+function delete_case(id){
+  var url = `/api/v1/cases/case/${id}`;
+  jqxhr = del(url,{},inspectJSON);
+}
+
+//////////////////////////////////////////
+function init_form(){
+/*
+    var manage_form = makeform({},[
+        {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
+        {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
+        {key:"secretary",label:"Secretary",type:"text",placeholder:"Internal identifier"},
+        {key:"Location",label:"Ward name",type:"text",placeholder:"Ward name"},
+        {key:"notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"},
+        //{key:"dateLogged",label:"dateLogged",type:"hidden"},
+        {key:"caseID",label:"caseID",type:"hidden"}
+    ])
+    
+    */
+    var manage_form = makeform({},[
+        {key:"caseID",label:"Case ID",type:"text",placeholder:"Case Reference"},
+    ])
+    $("#new_case").html(manage_form);
+    
+    $("#new_case_btn").show()
+    
+    $("#new_case #caseID").on('change', function(d){
+        check_duplicate_caseid()
+        console.log("check");
+    })
+    
+}
+init_form();
+
+function show_all_cases(){
+  var url = `/api/v1/cases/getcases`;
+  jqxhr = get(url,_show_all_cases);
+}
+var legacy_case = [
+"00001",
+"00002",
+"00003",
+"00004x",
+"0009",
+"006",
+"0003",
+"0007",
+"10000",
+"10001",
+"12345",
+"400341",
+"543321",
+"929384"
+]
+
+function _show_all_cases(data){
+    var htmlStr = ""
+    $.each(data, function(i,d){
+
+        
+        /*show legacy cases*/
+        if (_.contains(legacy_case, d.properties.caseID)){
+            //htmlStr += " (old system)";
+        }
+        else{
+        
+            htmlStr += "<li>";
+            htmlStr += `<a href="/view/case/${d.properties.caseID}">`;
+            htmlStr += d.properties.caseID; //aplicant, phsVolunteer, notes, Location, dateLogged
+            //console.log(d.properties)
+            htmlStr += "</a>";
+        
+            if (d.properties.caseID == "templateA"){
+            }
+            else{
+                //show button for delete case
+                htmlStr += ` <button onclick="confirm_delete('${d.properties.caseID}')" class=del>X</button>`;
+            }
+            
+            htmlStr += "</li>";
+        }
+        
+    });
+
+    $("#all_cases").html(htmlStr);
+}
+
+show_all_cases()
+</script>
+
+
+</body>
+</html>

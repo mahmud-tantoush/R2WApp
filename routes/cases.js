@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const driver = require('../driver.js');
-
+ 
 //general utility: converts identity to number in javascript
 function toNumber({ low, high }) {
     let res = high
@@ -255,7 +255,7 @@ return ID(b)
 
 router.post(`/linkevents`, (req, res)=>{
     
-    var caseID = req.params.caseID;
+    //var caseID = req.params.caseID;
     var param = req.body;
     var startNodeId = param.startNodeId; //need error checking here
     var endNodeId = param.endNodeId; //need error checking here
@@ -430,8 +430,15 @@ router.get(`/getcaseeventV2/:caseID`, (req, res)=>{
     var caseID = req.params.caseID;
     
     const session = driver.session()
+    /*
     q = `
 MATCH (a {caseID:"${caseID}"})-[:HAS]->(b)-[r:NEXT]->() 
+RETURN COLLECT(DISTINCT b) as nodes ,COLLECT(DISTINCT r) as edges
+`
+*/
+q = `
+MATCH (a {caseID:"${caseID}"})-[r2:HAS]->(b)
+OPTIONAL MATCH (b)-[r:NEXT]->() 
 RETURN COLLECT(DISTINCT b) as nodes ,COLLECT(DISTINCT r) as edges
 `
 
@@ -452,6 +459,8 @@ RETURN COLLECT(DISTINCT b) as nodes ,COLLECT(DISTINCT r) as edges
         for (var i in edges){
             edges[i].id = toNumber(edges[i].identity)
             delete edges[i].identity
+            edges[i].startNodeId = toNumber(edges[i].start)
+            edges[i].endNodeId = toNumber(edges[i].end)
         }
         
         res.send({nodes:nodes,edges:edges});

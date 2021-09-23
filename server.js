@@ -48,11 +48,19 @@ const serverInitialize = async () => {
 
   ////////////
   // cannot pass req parameters through proxy, decode the cookie instead?
+  /*
   const jwt = require('jsonwebtoken');
   const cookieParser = require('cookie-parser');
   server.use(cookieParser());
   const { SECRET, NEW_USER_KEY, CLIENT_KEY } = require('./auth/config');
+  */
   ////////////
+
+  server.get(`/index`, (req, res) => {
+
+    res.render("index", { user: req.query }); //under views/case.ejs
+  });
+
 
   server.get(`/view/case/:caseID`, (req, res) => {
   
@@ -64,10 +72,9 @@ const serverInitialize = async () => {
     /////////////// OPTION 1 with querystring passed on from proxy
     console.log(req.query);
     
-    
-    
     ////////////////////////////////////////////////////////////
     /////////////// OPTION 2 decode the jwt token, need same SECRET as login
+    /*
     const { token } = req.cookies;
     
     if (token){
@@ -81,8 +88,17 @@ const serverInitialize = async () => {
       }
       //res.render("test", { req: decoded }); //under views/case.ejs
     }
+    */
     ////////////////////////////////////////////////////////////
-    
+    if (req.query.role == 'ADMIN') //note: passing query string means that it can be override by user, use with caution
+    { 
+      
+      res.render("case_admin", { caseID: req.params.caseID }); //under views/case_admin.ejs
+    }
+    else if (req.query.role == 'EDITOR')
+    {
+     res.render("case_editor", { caseID: req.params.caseID }); //under views/case_editor.ejs
+    }
     else{
       res.send("Please login to proceed");
     }
