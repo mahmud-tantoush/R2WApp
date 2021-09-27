@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<!--
+<script src="js/d3.v4.min.js"></script>
+<script src="js/underscore-min.js"></script>
+-->
+<style>
+
+.svg-chart-container {
+  display: block;
+  position: relative;
+  width: 100%;
+  /*padding-bottom: 100%;*/ /* aspect ratio */
+  aspect-ratio: 25/10;
+  vertical-align: top;
+  overflow: hidden;
+  background: #eee;
+}
+.svg-chart-content-responsive {
+    display: inline-block;
+    position: absolute;
+    top: 10px;
+    left: 0;
+}
+
+.boxes{
+  fill: #fc0;
+}
+.vertLines{
+  marker-start: url(#SingleDash);
+  marker-end: url(#SingleDash);
+}
+.medianLines{
+  stroke-width:5px;
+}
+
+</style>
+
+
+<!-- Create a div where the graph will take place -->
+
+<div class="svg-chart-container">
+  <svg id="my_dataviz">
+    <marker id="SingleDash" markerWidth="4" markerHeight="12" refX="0" refY="0"
+            viewBox="-2 -6 4 12" markerUnits="userSpaceOnUse" orient="auto">
+      <rect x="-1" y="-5" width="2" height="10"/>
+    </marker>
+  </svg>
+
+</div>
+
+
+<script>
+
+// set the dimensions and margins of the graph
+var margin = {top: 10, right: 100, bottom: 250, left: 40},
+    width = 2500 - margin.left - margin.right,
+    height = 1000 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = 
+
+  d3.select("#my_dataviz")
+  //.append("svg")
+    //.attr("width", width + margin.left + margin.right)
+    //.attr("height", height + margin.top + margin.bottom)
+    .attr("viewBox", "0 0 2500 1000")
+    .attr("preserveAspectRatio", "xMinYMin meet")
+    .classed("svg-chart-content-responsive", true)
+    
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+// Read the data and compute summary statistics for each specie
+/*
+d3.csv("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/iris.csv", function(data) {
+
+  // Compute quartiles, median, inter quantile range min and max --> these info are then used to draw the box.
+  var sumstat = d3.nest() // nest function allows to group the calculation per level of a factor
+    .key(function(d) { return d.Species;})
+    .rollup(function(d) {
+      q1 = d3.quantile(d.map(function(g) { return g.Sepal_Length;}).sort(d3.ascending),.25)
+      median = d3.quantile(d.map(function(g) { return g.Sepal_Length;}).sort(d3.ascending),.5)
+      q3 = d3.quantile(d.map(function(g) { return g.Sepal_Length;}).sort(d3.ascending),.75)
+      interQuantileRange = q3 - q1
+      min = q1 - 1.5 * interQuantileRange
+      max = q3 + 1.5 * interQuantileRange
+      return({q1: q1, median: median, q3: q3, interQuantileRange: interQuantileRange, min: min, max: max})
+    })
+    .entries(data)
+*/
+
+
+sumstat = [{"value":{"q1":7.75,"q3":9.25,"min":7,"median":8.5,"max":10,"count":2},"key":"Awareness"},{"value":{"q1":8,"q3":8,"min":8,"median":8,"max":8,"count":1},"key":"Placeholder"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Secretary Selection"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Document Collection"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Signature / thumbprints on the documents"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Create Settlement Map"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Filling Online form"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"LP Authorisation and signature on documents"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Challan"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Photocopy of the File"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Dispatch orginal File"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Visit Confirmation by JE"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Response Letter_JE"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":2},"key":"JE Visit"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Document Verification"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"JE Report"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"MS Site Visit"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"MS Report to JE"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"File passed to AE for approval of P form"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"P Form"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Condition: Individual tap water permission"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Condition:"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"P Form + C Form LP signature"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Road Permision"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Challan for Road Permission"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Challan for Road Permission Photocopy"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"AE, SE, JE Maintenace signature - Road permission"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Challan for Road Permission Photocopy attach to PHS file"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Deposit of tap connection to be paid"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Photo copy of the Deposit reciept to be attached to the PHS file"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Original Reciept to be handed over to Nal Committee Secretary"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"C Form Nal Secretary signature"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"SEWW signature on C Form"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"HC BIlling signature on C Form"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Inform Nal committee for Meter connection"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Meter card to be signed by SEWW"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Form No. 32 to be filled and attached to the original file"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"File certification by AE and SEWW"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Work order by JE Water Chowki"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"JE to sign the file in Water Chowki"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Nal Committee to be ready with pipes and plumber"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Trench - Gang from water chowki"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Connection installed"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Nal Committee Formation"},{"value":{"q1":5,"q3":5,"min":5,"median":5,"max":5,"count":1},"key":"P Form Conditional"}]
+
+sumstat2 = [{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Secretary Selection"},{"value":{"q1":7.75,"q3":9.25,"min":7,"median":8.5,"max":10,"count":2},"key":"Awareness"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Document Collection"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Signature / thumbprints on the documents"},{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":"Create Settlement Map"}
+]
+
+testdata =
+[
+    {
+        "key": "setosa",
+        "value": {
+            "q1": 4.8,
+            "median": 5,
+            "q3": 5.2,
+            "interQuantileRange": 0.40000000000000036,
+            "min": 4.199999999999999,
+            "max": 5.800000000000001
+        }
+    },
+    {
+        "key": "versicolor",
+        "value": {
+            "q1": 5.6,
+            "median": 5.9,
+            "q3": 6.3,
+            "interQuantileRange": 0.7000000000000002,
+            "min": 4.549999999999999,
+            "max": 7.35
+        }
+    },
+    {
+        "key": "virginica",
+        "value": {
+            "q1": 6.225,
+            "median": 6.5,
+            "q3": 6.9,
+            "interQuantileRange": 0.6750000000000007,
+            "min": 5.212499999999999,
+            "max": 7.912500000000001
+        }
+    }
+]
+  // Show the X scale
+  var x = d3.scaleBand()
+    .range([ 0, width ])
+    //.domain(["Awareness", "Document Collection"]) 
+    //.domain(keys) 
+    .paddingInner(1)
+    .paddingOuter(.5)
+  svg.append("g")
+    .classed("xaxis",true)
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x))
+    
+  // Show the Y scale
+  var y = d3.scaleLinear()
+    .range([height, 0])
+  svg.append("g")
+    .classed("yaxis",true)
+    .call(d3.axisLeft(y))
+  
+
+function update(sumstat){
+  keys = _.collect(sumstat,function(d){return d.key;});
+  minValues = _.collect(sumstat,function(d){return d.value.min;});
+  maxValues = _.collect(sumstat,function(d){return d.value.max;});
+
+
+  console.log(sumstat)
+
+
+
+  x.domain(keys) 
+  d3.select(".xaxis").call(d3.axisBottom(x))
+  .selectAll("text")
+    .attr("y", 15)
+    .attr("x", 10)
+    .attr("dy", ".35em")
+    .attr("transform", "rotate(45)")
+    .style("text-anchor", "start");
+
+  y.domain([d3.min(minValues)-1,d3.max(maxValues)+1]) //drive the domain from the data
+  d3.select(".yaxis").call(d3.axisLeft(y))
+
+    
+  // rectangle for the main box
+  var boxWidth = 20
+  var boxesData = svg.selectAll(".boxes").data(sumstat)
+      boxesData.exit().remove();
+      boxesData.enter().append("rect").classed("boxes",true);
+          
+      //redraw all boxes
+      svg.selectAll(".boxes")
+          .attr("x", function(d){return(x(d.key)-boxWidth/2)})
+          .attr("y", function(d){return(y(d.value.q3))})
+          .attr("height", function(d){return(y(d.value.q1)-y(d.value.q3))})
+          .attr("width", boxWidth )
+          .attr("stroke", "black")
+          //.style("fill", "#69b3a2")
+    
+  // Show the main vertical line
+  var vertLinesData = svg.selectAll(".vertLines").data(sumstat)
+      vertLinesData.exit().remove();
+      vertLinesData.enter().append("line").classed("vertLines",true);
+      
+      svg.selectAll(".vertLines")
+            .attr("x1", function(d){return(x(d.key))})
+            .attr("x2", function(d){return(x(d.key))})
+            .attr("y1", function(d){return(y(d.value.min))})
+            .attr("y2", function(d){return(y(d.value.max))})
+            .attr("stroke", "black")
+
+  // Show the median
+  var medianLinesData = svg.selectAll(".medianLines").data(sumstat)
+      medianLinesData.exit().remove();
+      medianLinesData.enter().append("line").classed("medianLines",true);
+      
+  svg.selectAll(".medianLines")
+      .attr("x1", function(d){return(x(d.key)-boxWidth/2) })
+      .attr("x2", function(d){return(x(d.key)+boxWidth/2) })
+      .attr("y1", function(d){return(y(d.value.median))})
+      .attr("y2", function(d){return(y(d.value.median))})
+      .attr("stroke", "black")
+
+ 
+      
+  }
+      
+//})
+
+  update(testdata);
+</script>

@@ -8,6 +8,7 @@ R2W V2
 </title>
 <Script src="/V2/js/jquery.min.js"></script>
 <Script src="/V2/js/underscore-min.js"></script>
+<Script src="/V2/js/d3.v4.min.js"></script>
 <Script src="/V2/js/R2W.js"></script>
 <link rel="stylesheet" href="/V2/css/styles.css">
 
@@ -52,14 +53,41 @@ button.del{
         <p>
         <%= JSON.stringify(user); %>
         <br>
-        <a href="/api/action/user/logout">Logout</a> (this is api access, need to wrap it with some code)
+        <h2>User system</h2>
+        <button onclick="logout()">Logout</button> (note: in dev with user system)
     
-        <button onclick="logout()">Logout</button>
+        <br>
+        <h2>Overview (Experimental)</h2>
+        
+        <div id="boxplot"></div>
+        Boxplot of the duration (from Event start date to completed date) per completed Event across the whole dataset.
+        <p> 
+Note: will sort out the size of chart and labels etc once we have the dynamic elements and what to aggregate and extract from the dataset for meaningful insights.
     
     </div>
 </div>
+<br><br>
 
 <script>
+function load_boxplot(){
+    $.ajax({
+        url: '/V2/boxplot_group.html',
+        cache: false,
+        dataType: "html",
+        success: function(data) {
+            /////////////
+            $("#boxplot").html(data);
+            
+            get('/api/v1/cases/eventplot',function(d){
+              update(d);
+            })
+            /////////////
+        }
+    });
+}
+load_boxplot()
+
+
 function logout(){
   get("/api/action/user/logout",function(d){ window.location.href='/' });
 }

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const driver = require('../driver.js');
- 
+
 //general utility: converts identity to number in javascript
 function toNumber({ low, high }) {
     let res = high
@@ -620,6 +620,47 @@ return r;
       })
 })
 
+//testing reporting procedures
+
+router.get(`/eventplot`, (req, res)=>{
+
+    const session = driver.session()
+    q = `
+match (e:Event)
+where e.eventCompletedDate <> "" AND e.Completed = "true"
+with e,duration.inDays(date(e.eventStartDate), date(e.eventCompletedDate)).days as days
+where days > 0
+with distinct e.Label as key, percentileCont(days, 0.25) as q1, percentileCont(days, 0.5) as median, percentileCont(days, 0.75) as q3, min(days) as min, max(days) as max,count(days) as count
+with key, {q1: toFloat(q1),median:toFloat(median),q3:toFloat(q3),min:toFloat(min),max:toFloat(max),count:toFloat(count)} as value, median
+return {key:key, value:value}
+order by median desc
+    `
+
+    //`MATCH (n:Case {caseID:'${req.params.caseID}'}) RETURN n`
+    console.log(q)
+    
+    session.run(q) 
+      .then(result => {
+
+        console.log(result.records)
+        session.close();
+        //res.json(result.records)
+        
+        output = []
+        
+        for (var i in result.records){
+          output.push(result.records[i]._fields[0])
+        }
+        
+        
+        res.json(output)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
 
 
 //temporary - needs review  - delete Event->Event relation    
