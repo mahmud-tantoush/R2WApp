@@ -3,10 +3,11 @@
   src: url(/V2/fonts/Roboto/Roboto-Regular.ttf);
 }
 
-.debug{
+.debug, .dev{
     background:#888;
     color:#fff;
-    display:none;
+    font-size: 0.8rem;
+    /*display:none;*/
 }
 
 
@@ -26,6 +27,12 @@ a:hover{ color:gold}
 
 
 /*R2W styles */
+
+.hidden {display:none}
+
+.current{
+  background:#fc0;
+}
 
 .paper{
     width:80%;
@@ -48,7 +55,7 @@ a:hover{ color:gold}
     .panel2{
         width:100% !important;
     }
-    .FForm input, .FForm textarea{
+    .FForm label, .FForm input, .FForm textarea{
         width:100% !important;
     }
     .paper{
@@ -65,7 +72,7 @@ a:hover{ color:gold}
 
 
 /* form */
-input, textarea,button{
+input, textarea, button{
     padding:8px;
     font-size: 1.1em;
     background:#eee;
@@ -170,3 +177,31 @@ input[type=checkbox]:checked + label:after {
     content: '\2714'; 
     font-size: 24px;
 } 
+
+/* table styles*/
+
+table{
+  width:100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+th, td {
+  border-bottom: 1px solid #ddd;
+}
+tr:nth-child(even) {background-color: #f2f2f2;}
+th, td {
+  padding: 10px;
+  text-align: left;
+}
+th {
+  background-color: #888;
+  color: white;
+}
+
+
+.sortBtn{
+  
+}
+.sortBtn:hover{
+  cursor:pointer;
+}
