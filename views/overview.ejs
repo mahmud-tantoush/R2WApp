@@ -15,6 +15,7 @@ R2W V2
 
 <style>
 .submit_container{display:block}
+
 button.del{
     width:18px;
     height:18px;
@@ -24,11 +25,24 @@ button.del{
     float:right;
 }
 
+/*page*/
+.current{
+  background:#ccc;
+}
+/*loading skeleton for table*/
+.skeleton p {
+    opacity: 1;
+    animation: fade 2s linear infinite;
+}
+@keyframes fade {
+  0%,100% { opacity: 0.2 }
+  50% { opacity: 0.8 }
+}
 
 </style>
 <body>
 <div class="paper">
-    <h1>R2W / Overview</h1>
+    <h1>R2W / Overview (Dashboard)</h1>
 
     
     <div class="panel" style="display:none">
@@ -42,20 +56,15 @@ button.del{
         
     </div>
     
-    
     <div class="panel">
-        <h2>Cases</h2>
-        <div id="cases">Loading...</div>
-        <div id="cases_debug" class="debug">Loading...</div>
-        <div id="cases_pagination"></div>
-
-        <p>
+        <h2>Dev log</h2>
         Reporting and navigation:<br>
         todo 1: dashboard showing summary of cases e.g. number of events recorded, current status etc [CURRENT]<br>
         todo 2: pagination (ways to navigate when there are more records) [CURRENT]<br>
         todo 3: order by [CURRENT]<br>
-        todo 4: search (question by ?) <br>
-        todo 5: additional reporting insights (e.g. compare with templateA)
+        todo 4: search - filter summary by keywords with wildcards* and fuzzy search~ [CURRENT]<br>
+        todo 5: additional reporting insights (e.g. compare with templateA)<br>
+        todo 6: rename "overview" as "dashboard"
         <p>
         User system integration:<br>
         todo 1: Admin view - list Editors, approve (validate) Editor, reassign Case to an Editor<br>
@@ -63,7 +72,91 @@ button.del{
         <p>
         Documentation:<br>
         todo 1: definition of "completed", "overdue", "ongoing" and "error"<br>
-        todo 2: measures and interpretations for Case-Event comparisons<br>
+        todo 2: measures and interpretations for Case comparisons<br>
+    </div>
+    
+
+    <script>
+    
+    //debug only
+    function search(){
+      //post("/api/v1/cases/search/",{q:$("#q").val()},_search)
+      
+      //$("#cases").html("Loading..."); //replace this with a skeleton table
+      $("#cases").html(`
+      <table class=skeleton>
+      <tr><th><p>▮▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th></tr>
+      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮▮</p></td></tr>
+      <tr><td><p>▮▮▮</p></td><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td></tr>
+      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮</p></td></tr>
+      </table>
+      
+      `); //replace this with a skeleton table
+ 
+      show_cases_summary(0);
+      show_pagination();
+    }
+    function _search(data){
+      console.log(data);
+      //$("#search_result").html(JSON.stringify(data));
+      
+      
+      //draw table - todo need to look at better way to do this wihtout duplicated code yet flexible
+        if (data.length){
+            var tableStr = "<table>"
+            //get header assume keys for one applies to the rest
+            var header = Object.keys(data[0]);
+            tableStr += "<tr>";
+            $.each(header, function(i,d){
+              tableStr += "<th>";
+              tableStr += d;
+              //tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
+              tableStr += "</th>";
+            });
+            tableStr += "</tr>";
+            
+            $.each(data, function(i,d){
+              tableStr += "<tr>";
+              $.each(d, function(ii,dd){
+                tableStr += "<td>";
+                
+                if (ii == "caseID"){
+                  tableStr += `<a href="/view/case/${dd}">${dd}</a>`
+                }else{
+                  tableStr += `${dd}`
+                }
+                 tableStr += "</td>";
+              });
+              tableStr += "</tr>";
+            });
+
+            $("#search_result").html(tableStr);
+          }else{
+            $("#search_result").html("no results found");
+          }
+      
+      
+    }
+    </script>
+    
+    
+    <div class="panel">
+        <h2>Case summary: progress</h2>
+         <div>
+          Filter cases by caseID:
+          <input type="text" id="q" onchange="search()" value="FNIDN* OR EXIDN* OR PHS*" style="width:calc(100% - 100px)"> 
+            <button onclick="search()">Search</button>
+        </div>
+        <br>
+        <div id="search_result"></div>
+        
+        
+        <div id="cases">Loading...</div>
+        <div id="cases_debug" class="debug">Loading...</div>
+        <br>
+        <div id="cases_pagination"></div>
+
+
         
         <h2>Metrics (WIP)</h2>
         
@@ -294,33 +387,39 @@ var state = {
   page: 0,
   order: "total"
 }
-
 function show_cases_summary(page){
-
   state.page = page;
-
   var url = `/api/v1/cases/getcases/summary/${state.page}/${state.order}`;
-  jqxhr = get(url,_show_cases_summary);
-  
-  //get2('api/v1/cases/getcases/summary/0',{order:"total"})
-  $("#cases_pagination button").removeClass("current");
-  $(`#cases_pagination button#page-${page}`).addClass("current");
-  
+  jqxhr = post(url,{q:$("#q").val()},_show_cases_summary);
 }
 function show_pagination(){
   var url = `/api/v1/cases/getcases/summary/total`;
+  jqxhr = post(url,{q:$("#q").val()},_show_pagination);
+}
+
+///////////////////////
+function show_cases_summarySS(page){
+  state.page = page;
+  var url = `/api/v1/cases/getcases/summary/${state.page}/${state.order}`;
+  jqxhr = get(url,_show_cases_summary);
+}
+function show_paginationSS(){
+  var url = `/api/v1/cases/getcases/summary/total`;
   jqxhr = get(url,_show_pagination);
 }
+///////////////////////
+
 function _show_pagination(total){
   var items_per_page = 10;
   var total_pages = 1;
-  var htmlStr = "";
+  var htmlStr = "Page ";
   
+  console.log(total)
   if (total>0){
     total_pages = Math.ceil(Number(total)/items_per_page);
   }
   
-  console.log(total_pages)
+  
   for (var i = 0; i < total_pages; i++){
     htmlStr += `<button id="page-${i}" onclick="show_cases_summary(${i})">${i+1}</button>`
   }
@@ -370,10 +469,19 @@ function _show_cases_summary(data){
     });
 
     $("#cases").html(tableStr);
+  }else{
+    $("#cases").html("no records");
   }
+  
+  //update the pagation class
+    $("#cases_pagination button").removeClass("current");
+    $(`#cases_pagination button#page-${state.page}`).addClass("current");
 }
-show_cases_summary(0);
-show_pagination();
+
+//show_cases_summary(0);
+//show_pagination();
+
+search();
 
 </script>
 

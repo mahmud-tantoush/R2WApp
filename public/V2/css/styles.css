@@ -7,7 +7,7 @@
     background:#888;
     color:#fff;
     font-size: 0.8rem;
-    /*display:none;*/
+    display:none;
 }
 
 
@@ -30,9 +30,6 @@ a:hover{ color:gold}
 
 .hidden {display:none}
 
-.current{
-  background:#fc0;
-}
 
 .paper{
     width:80%;

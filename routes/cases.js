@@ -35,6 +35,56 @@ router.get(`/getcase/:caseID`, (req, res)=>{
       })
 })
 
+router.post(`/search`, (req, res)=>{
+    //console.log('/api/v1/getcase/:case link works')
+    console.log(req.body)
+    
+    
+    if(!"q" in req.body){
+      res.send({error:1}); return;
+    }
+    
+    const session = driver.session()
+    
+    //template~ OR test~
+    q = `
+CALL db.index.fulltext.queryNodes('case', 'caseID:${req.body.q}') 
+YIELD node, score
+RETURN node.caseID as caseID, score
+`
+    console.log(q)
+    session.run(q) 
+      .then(result => {
+        //console.log(result)
+        session.close();
+        // res.json(result.records)
+
+        DBlist = []
+        
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+              //console.log(record.length)
+              //console.log(record._fields[i])
+            }
+            //add post-process here -e.g. if it is an integer we can process it here
+            
+            DBlist.push(tmp)
+            
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+        
+      })
+      .catch(error => {
+        session.close();
+        res.send(error)
+      })
+})
+
 
 //get 
 router.get(`/getcases`, (req, res)=>{
@@ -64,8 +114,31 @@ router.get(`/getcases/summary/total`, (req, res)=>{
  MATCH (n:Case) 
  WHERE COALESCE(n.hidden, 0) <> 1 
  RETURN toFloat(count(n))
- 
    `)
+      .then(result => {
+        session.close();
+        res.json(result.records[0]._fields[0])
+        
+      })
+      .catch(error => {
+        session.close();
+        res.send(error)
+      })
+})
+
+router.post(`/getcases/summary/total`, (req, res)=>{
+   if(!"q" in req.body){
+      res.send({error:1}); return;
+    }
+    const session = driver.session()
+    //template~ OR test~
+    q = `
+CALL db.index.fulltext.queryNodes('case', 'caseID:${req.body.q}') 
+YIELD node
+WHERE COALESCE(node.hidden, 0) <> 1 
+RETURN toFloat(count(node))
+`
+   session.run(q)
       .then(result => {
         session.close();
         res.json(result.records[0]._fields[0])
@@ -211,6 +284,91 @@ limit 10
       })
 })
 
+
+//post - combines search and summary (requires an index on caseID for Case)
+//
+ 
+ 
+ 
+router.post(`/getcases/summary/:Page/:Order`, (req, res)=>{
+    //console.log('/api/v1/getcases link works')
+   if(!"q" in req.body){
+      res.send({error:1}); return;
+    }
+    
+    let page = req.params.Page;
+    page = Number(page);
+    if (isNaN(page)){
+      res.json({error:1});
+      return;
+    }
+    
+    let orderbycypher = "order by total desc";
+    console.log(req.body)
+    //if ('order' in req.body){
+      //let orderby = req.body['order'];
+      let orderby = req.params.Order;
+      if (orderby){
+        orderbycypher = `order by ${orderby} desc`;
+      }
+    
+    const session = driver.session()
+    q = `
+CALL db.index.fulltext.queryNodes('case', 'caseID:${req.body.q}') 
+YIELD node as c
+WHERE COALESCE(c.hidden, 0) <> 1 
+optional match (c)-[:HAS]->(e:Event)	
+with distinct c, count(e) as total,					
+REDUCE(s = {completed:0.0, overdue:0.0, ongoing:0.0, error:0.0}, e IN collect(e) |					
+CASE					
+	WHEN 	e.Completed = "true"  AND e.eventCompletedDate <> "" AND (date(e.eventCompletedDate)  <= date()) AND duration.inDays(date(e.eventStartDate), date(e.eventCompletedDate)).days >= 0			
+		THEN 	{completed:s.completed+1, overdue:s.overdue, ongoing:s.ongoing, error:s.error}		
+		ELSE 			
+			CASE WHEN	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) <= date())	
+			THEN 	{completed:s.completed, overdue:s.overdue+1, ongoing:s.ongoing, error:s.error}	
+			ELSE 		
+				CASE WHEN 	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) > date())
+				THEN 	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing+1, error:s.error}
+				ELSE	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing, error:s.error+1}
+				END	
+			END		
+		END) AS status	
+return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.error as error,toFloat(total) as total
+${orderbycypher}	
+skip ${10*page}
+limit 10			
+`
+//console.log(q)
+    session.run(q)
+      .then(result => {
+        session.close();
+        //console.log(result.records)
+        DBlist = []
+        
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+              //console.log(record.length)
+              //console.log(record._fields[i])
+            }
+            //add post-process here -e.g. if it is an integer we can process it here
+            
+            DBlist.push(tmp)
+            
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+      })
+      .catch(error => {
+        session.close();
+        console.log(error);
+        error["error"] = 1;
+        res.send(error)
+      })
+})
 
 //get 
 router.get(`/metrics/overlap`, (req, res)=>{
