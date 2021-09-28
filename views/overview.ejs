@@ -1,0 +1,382 @@
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<head>
+<title>
+R2W V2
+</title>
+<Script src="/V2/js/jquery.min.js"></script>
+<Script src="/V2/js/underscore-min.js"></script>
+<Script src="/V2/js/d3.v4.min.js"></script>
+<Script src="/V2/js/R2W.js"></script>
+<link rel="stylesheet" href="/V2/css/styles.css">
+
+
+<style>
+.submit_container{display:block}
+button.del{
+    width:18px;
+    height:18px;
+    padding:0;
+    margin:0;
+    font-size:9pt;
+    float:right;
+}
+
+
+</style>
+<body>
+<div class="paper">
+    <h1>R2W / Overview</h1>
+
+    
+    <div class="panel" style="display:none">
+        <h2>Add Case</h2>
+        <div id="new_case" class="FForm">Loading...</div>
+        
+        <div class="submit_container">
+            <span id="update_case_status"></span>
+            <button onclick="new_case()">Add</button>
+        </div>
+        
+    </div>
+    
+    
+    <div class="panel">
+        <h2>Cases</h2>
+        <div id="cases">Loading...</div>
+        <div id="cases_debug" class="debug">Loading...</div>
+        <div id="cases_pagination"></div>
+
+        <p>
+        Reporting and navigation:<br>
+        todo 1: dashboard showing summary of cases e.g. number of events recorded, current status etc [CURRENT]<br>
+        todo 2: pagination (ways to navigate when there are more records) [CURRENT]<br>
+        todo 3: order by [CURRENT]<br>
+        todo 4: search (question by ?) <br>
+        todo 5: additional reporting insights (e.g. compare with templateA)
+        <p>
+        User system integration:<br>
+        todo 1: Admin view - list Editors, approve (validate) Editor, reassign Case to an Editor<br>
+        todo 2: Editor view - list Cases for editing
+        <p>
+        Documentation:<br>
+        todo 1: definition of "completed", "overdue", "ongoing" and "error"<br>
+        todo 2: measures and interpretations for Case-Event comparisons<br>
+        
+        <h2>Metrics (WIP)</h2>
+        
+        
+        <h3>1. How long does it take for an "Event" (e.g. Awareness) to be completed, looking at the whole set of data?</h3>
+        <div id="boxplot"></div>
+Above: boxplot (<a href="https://www.khanacademy.org/math/statistics-probability/summarizing-quantitative-data/box-whisker-plots/a/box-plot-review" target="_blank">see explanation here</a>) of the duration (from Event start date to completed date) per completed Event across the whole dataset, ordered by the median duration from highest towards the left to lowest towards the right. 
+        <p> 
+Note: will sort out the size of chart and labels etc once we have the dynamic elements and what to aggregate and extract from the dataset for meaningful insights. Depends on what data is present in the system.
+        <div id="boxplot_json" class="dev"></div>
+        
+        <p>
+        <h3>2. How does each Case (B) compare with templateA (A)?</h3>
+        <br>
+        Assumptions: <br>
+        a. templateA (A) is an ideal or expected process (or another template in the future subject to data avaliability)<br>
+        b. Events in Case (B) are recorded and tracked as the real application process unfolds<br>
+        
+        <br>
+        Todo: similarity measures from A to multiple B
+        <br>
+        
+        <h4>How many overlapped Events are there between A and B?</h4>
+        Measure: Overlap<br>
+        Method: Overlap the set of Events in B with the set of Events in A <br>
+        Interpretation: the more overlap with templateA, the more progress has been made<br>
+        Limitations: the order/sequence of events is not considered here
+        
+        Measure: Jaccard<br>
+        Method: The ratio between overlapped set of Events in B with set of Events in A and the total number of Events in A<br>
+        Interpretation: the higher the measure, the more progress has been made with reference to A<br>
+        Limitations: the order/sequence of events is not considered here
+        
+        
+        <h4>How does the sequence of Events compare between A and B?</h4>
+        Measure: edit distance<br>
+        Method: first convert the sequence of Events into a linear sequence, compute Levenshtein distance between two sequence based on the Labels of Events (e.g. "Awareness")<br>
+        
+        Interpretation: a higher edit distance means B is less similar to A. When a Case are ongoing and at an early stage of the process, a high edit distance is expected, other measures is required to make sense of it. When a Case is near completion, the edit distance measure allows us to compare the process as recorded in B as compared to A which is assumed to be inputted as an ideal process.<br>
+        Limitations: while there are algorithms to estimate an inexact graph edit distance which consider more of the network graph features, a basic exact edit distance approach is used here for simplicity and speed.
+    
+    
+    </div>
+</div>
+<br><br>
+
+<script>
+function load_boxplot(){
+    $.ajax({
+        url: '/V2/boxplot_group.html',
+        cache: false,
+        dataType: "html",
+        success: function(data) {
+            /////////////
+            $("#boxplot").html(data);
+            
+            get('/api/v1/cases/eventplot',function(d){
+              update(d);
+              $("#boxplot_json").html(JSON.stringify(d))
+            })
+            /////////////
+        }
+    });
+}
+load_boxplot()
+
+
+function logout(){
+  get("/api/action/user/logout",function(d){ window.location.href='/' });
+}
+
+function new_case(){
+  var url = `/api/v1/cases/createcase`;
+  var id = $("#new_case #caseID").val();
+  if (id){
+      data = {caseID: id}
+      jqxhr = post(url,data,inspectJSON);
+      //post("/api/v1/cases/createcase",{caseID: 'test'},function(d){console.log(d)});
+  }else{
+     $("#update_case_status").html("enter case reference");
+  }
+}
+function check_duplicate_caseid(){
+    var id = $("#new_case #caseID").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,show_duplicate_caseid);
+    }
+}
+function show_duplicate_caseid(data){
+    if (Number(data) == 0){
+        $("#update_case_status").html("");
+    }else{
+        $("#update_case_status").html("caseID already exists");
+    }
+}
+
+function caseexists(){
+    var id = $("#newcaseid").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,inspectJSON);
+    }else{
+        $("#newcaseid").focus()
+    }
+}
+function inspectJSON(d){
+    console.log(d)
+    $("#update_case_status").html(`${d.message}: <a href="/view/case/${d.data}">${d.data}</a>`);
+    show_all_cases();
+}
+//////////////////////////////////////////
+function confirm_delete(id){
+    if (confirm('Delete caseID: '+ id +"?")) {
+        delete_case(id)
+    } 
+}
+
+function delete_case(id){
+  var url = `/api/v1/cases/case/${id}`;
+  jqxhr = del(url,{},inspectJSON);
+}
+
+//////////////////////////////////////////
+function init_form(){
+/*
+    var manage_form = makeform({},[
+        {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
+        {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
+        {key:"secretary",label:"Secretary",type:"text",placeholder:"Internal identifier"},
+        {key:"Location",label:"Ward name",type:"text",placeholder:"Ward name"},
+        {key:"notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"},
+        //{key:"dateLogged",label:"dateLogged",type:"hidden"},
+        {key:"caseID",label:"caseID",type:"hidden"}
+    ])
+    
+    */
+    var manage_form = makeform({},[
+        {key:"caseID",label:"Case ID",type:"text",placeholder:"Case Reference"},
+    ])
+    $("#new_case").html(manage_form);
+    
+    $("#new_case_btn").show()
+    
+    $("#new_case #caseID").on('change', function(d){
+        check_duplicate_caseid()
+        console.log("check");
+    })
+    
+}
+init_form();
+
+
+
+//////////////////////////////////////////
+function show_all_cases(){
+  var url = `/api/v1/cases/getcases`;
+  jqxhr = get(url,_show_all_cases);
+}
+var legacy_case = [
+"00001",
+"00002",
+"00003",
+"00004x",
+"0009",
+"006",
+"0003",
+"0007",
+"10000",
+"10001",
+"12345",
+"400341",
+"543321",
+"929384"
+]
+
+function _show_all_cases(data){
+    var htmlStr = ""
+    $.each(data, function(i,d){
+
+        
+        /*show legacy cases*/
+        if (_.contains(legacy_case, d.properties.caseID)){
+            //htmlStr += " (old system)";
+        }
+        else{
+        
+            htmlStr += "<li>";
+            htmlStr += `<a href="/view/case/${d.properties.caseID}">`;
+            htmlStr += d.properties.caseID; //aplicant, phsVolunteer, notes, Location, dateLogged
+            //console.log(d.properties)
+            htmlStr += "</a>";
+        
+            if (d.properties.caseID == "templateA"){
+            }
+            else{
+                //show button for delete case
+                htmlStr += ` <button onclick="confirm_delete('${d.properties.caseID}')" class=del>X</button>`;
+            }
+            
+            htmlStr += "</li>";
+        }
+        
+    });
+
+    $("#all_cases").html(htmlStr);
+}
+
+//show_all_cases()
+//////////////////////////////////////////
+function show_all_cases_summary(){
+  var url = `/api/v1/cases/getcases/summary/all`;
+  jqxhr = get(url,_show_all_cases_summary);
+}
+function _show_all_cases_summary(data){
+    var htmlStr = ""
+    $.each(data, function(i,d){
+      htmlStr += JSON.stringify(d);
+      htmlStr += "<br>";
+    });
+    $("#all_cases").html(htmlStr);
+}
+//show_all_cases_summary()
+//////////////////////////////////////////
+
+//pagintion
+var state = {
+  page: 0,
+  order: "total"
+}
+
+function show_cases_summary(page){
+
+  state.page = page;
+
+  var url = `/api/v1/cases/getcases/summary/${state.page}/${state.order}`;
+  jqxhr = get(url,_show_cases_summary);
+  
+  //get2('api/v1/cases/getcases/summary/0',{order:"total"})
+  $("#cases_pagination button").removeClass("current");
+  $(`#cases_pagination button#page-${page}`).addClass("current");
+  
+}
+function show_pagination(){
+  var url = `/api/v1/cases/getcases/summary/total`;
+  jqxhr = get(url,_show_pagination);
+}
+function _show_pagination(total){
+  var items_per_page = 10;
+  var total_pages = 1;
+  var htmlStr = "";
+  
+  if (total>0){
+    total_pages = Math.ceil(Number(total)/items_per_page);
+  }
+  
+  console.log(total_pages)
+  for (var i = 0; i < total_pages; i++){
+    htmlStr += `<button id="page-${i}" onclick="show_cases_summary(${i})">${i+1}</button>`
+  }
+  
+  $("#cases_pagination").html(htmlStr);
+  $(`#cases_pagination button#page-0`).addClass("current");
+}
+function _show_cases_summary(data){
+  console.log(data);
+  //json out
+  var htmlStr = ""
+  $.each(data, function(i,d){
+    htmlStr += JSON.stringify(d);
+    htmlStr += "<br>";
+  });
+  $("#cases_debug").html(htmlStr);
+  
+  //table
+  
+  
+  if (data.length){
+    var tableStr = "<table>"
+    //get header assume keys for one applies to the rest
+    var header = Object.keys(data[0]);
+    tableStr += "<tr>";
+    $.each(header, function(i,d){
+      tableStr += "<th>";
+      tableStr += d;
+      tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
+      tableStr += "</th>";
+    });
+    tableStr += "</tr>";
+    
+    $.each(data, function(i,d){
+      tableStr += "<tr>";
+      $.each(d, function(ii,dd){
+        tableStr += "<td>";
+        
+        if (ii == "caseID"){
+          tableStr += `<a href="/view/case/${dd}">${dd}</a>`
+        }else{
+          tableStr += `${dd}`
+        }
+         tableStr += "</td>";
+      });
+      tableStr += "</tr>";
+    });
+
+    $("#cases").html(tableStr);
+  }
+}
+show_cases_summary(0);
+show_pagination();
+
+</script>
+
+
+</body>
+</html>

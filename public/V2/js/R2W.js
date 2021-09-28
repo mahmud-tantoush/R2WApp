@@ -20,14 +20,39 @@ function get(url,result_function){
     })
   return jqxhr;
 }
+
 //////////////////////////////////////
-//fire a get request, returns jqxhr for promise
+//fire a get request, returns jqxhr for promise - note the naming is wrong it means async is disabled here, will sort this out later
 function async_get(url,result_function){
   var jqxhr = $.ajax( {
       type:"GET",
       url:url,
       cache:false,
       async: false
+    } )
+    .done(function(d) {
+      if (result_function){
+        result_function(d);
+      }
+      else{
+        inspectJSON(d)
+      }
+    })
+    .fail(function() {
+      console.error( "Error get:" + url );
+    })
+  return jqxhr;
+}
+
+//////////////////////////////////////
+//fire a get request, returns jqxhr for promise
+function del(url,data,result_function){
+  var jqxhr = $.ajax( {
+      type:"DELETE",
+      url:url,
+      data:JSON.stringify(data),
+      contentType:"application/json",
+      dataType: "json"
     } )
     .done(function(d) {
       if (result_function){
@@ -182,13 +207,22 @@ function makeform(jsonobj,config){
                 else if (item.type == 'textarea'){
                      htmlStr += `<textarea id="${item.key}" name="${item.key}" class="editor" ${placeholder}>${value}</textarea>`;
                 }
+                else if (item.type == 'link'){
+                    //standard text input + link
+                    htmlStr += `<input id="${item.key}" type="text" name="${item.key}" value="${value}" class="editor" ${placeholder}>`;
+                    if (value){
+                        htmlStr += `<div style="text-align:right"><a href="${value}">[open]</a></span>`;
+                    }
+                    
+                }
                 else{
-                    htmlStr += `<input type="text" name="${item.key}" value="${value}" class="editor" ${placeholder}>`;
+                    //standard text input
+                    htmlStr += `<input id="${item.key}" type="text" name="${item.key}" value="${value}" class="editor" ${placeholder}>`;
                 }
                 htmlStr += "</li>";
             }
             else{
-                htmlStr += `<input type="hidden" name="${item.key}" value="${value}" class="editor">`;
+                htmlStr += `<input type="hidden" id="${item.key}" name="${item.key}" value="${value}" class="editor">`;
             }
             
             
@@ -212,7 +246,7 @@ function parseform(domid){
 		//console.log( key );
         
         if (datatype == "checkbox"){
-            val = $( this ).is(":checked");
+            val = $( this ).is(":checked").toString();
         }
 		//else if (key == "Label"){
 		//	val = $("#Label option:selected").val(); //tmp only for exceptions
@@ -243,7 +277,7 @@ function parseform(domid){
 function scrollTo(domid){
     $('html, body').animate({
     scrollTop: $(domid).offset().top
-    }, 1000);
+    }, 200);
 }
 
 

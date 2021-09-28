@@ -57,8 +57,11 @@ const serverInitialize = async () => {
   ////////////
 
   server.get(`/index`, (req, res) => {
+    res.render("index", { user: req.query }); //under views/index.ejs
+  });
 
-    res.render("index", { user: req.query }); //under views/case.ejs
+  server.get(`/overview`, (req, res) => {
+    res.render("overview", { user: req.query }); //under views/overview.ejs
   });
 
 

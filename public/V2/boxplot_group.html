@@ -35,7 +35,10 @@
 .medianLines{
   stroke-width:5px;
 }
-
+text:hover{
+  font-size:2rem;
+  cursor:default;
+}
 </style>
 
 
@@ -55,7 +58,7 @@
 <script>
 
 // set the dimensions and margins of the graph
-var margin = {top: 10, right: 100, bottom: 250, left: 40},
+var margin = {top: 10, right: 100, bottom: 250, left: 100},
     width = 2500 - margin.left - margin.right,
     height = 1000 - margin.top - margin.bottom;
 
@@ -102,7 +105,7 @@ sumstat2 = [{"value":{"q1":7,"q3":7,"min":7,"median":7,"max":7,"count":1},"key":
 testdata =
 [
     {
-        "key": "setosa",
+        "key": "Placeholder 1",
         "value": {
             "q1": 4.8,
             "median": 5,
@@ -113,7 +116,7 @@ testdata =
         }
     },
     {
-        "key": "versicolor",
+        "key": "Placeholder 2",
         "value": {
             "q1": 5.6,
             "median": 5.9,
@@ -124,7 +127,7 @@ testdata =
         }
     },
     {
-        "key": "virginica",
+        "key": "Placeholder 3",
         "value": {
             "q1": 6.225,
             "median": 6.5,
