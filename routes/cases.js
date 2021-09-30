@@ -247,7 +247,7 @@ CASE
 				END	
 			END		
 		END) AS status	
-return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.error as error,toFloat(total) as total
+return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.error as error,toFloat(total) as total,c.phsVolunteer as user
 ${orderbycypher}	
 skip ${10*page}
 limit 10			
@@ -333,7 +333,7 @@ CASE
 				END	
 			END		
 		END) AS status	
-return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.error as error,toFloat(total) as total
+return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.error as error,toFloat(total) as total,c.phsVolunteer as editor
 ${orderbycypher}	
 skip ${10*page}
 limit 10			
@@ -1038,4 +1038,103 @@ DELETE r
         res.send(error)
       })
 })
+
+// import and export procedures for migration between neo4j-db
+//admin only procedure
+
+
+router.get(`/exportjson/:caseID`, (req, res)=>{
+    const session = driver.session()
+    let caseID = req.params.caseID;
+    if (!caseID){
+      res.send({status:0})
+      return;
+    }
+    
+q = `
+MATCH (c:Case {caseID:"${caseID}"})
+//MATCH (c:Case)
+optional match (c)-[r1:HAS]->(e:Event)
+optional match (e:Event)-[r2:NEXT]->(:Event)
+return distinct c as case,collect(e) as event,collect(r1) as has,collect(r2) as next
+//limit 2
+`;
+
+    session.run(q) 
+      .then(result => {
+        session.close();
+        //res.json(result.records)
+        DBlist = []
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+            }
+            //add post-process here -e.g. if it is an integer we can process it here  
+            DBlist.push(tmp)
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+        
+        
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+
+router.post(`/importjson/`, (req, res)=>{
+    const session = driver.session()
+
+    //process the json list[{case:{},event:[],next:[]}]
+    /*
+    check if the caseID already exists in the db
+    add case
+    
+    
+    */
+    
+    
+    if (!true){
+      res.send({status:0})
+      return;
+    }
+    
+q = `
+
+`;
+
+    session.run(q) 
+      .then(result => {
+        session.close();
+        //res.json(result.records)
+        DBlist = []
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+            }
+            //add post-process here -e.g. if it is an integer we can process it here  
+            DBlist.push(tmp)
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+        
+        
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+
 module.exports = router;

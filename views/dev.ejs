@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R2W user</title>
+<link rel="stylesheet" href="/V2/css/jquery-ui.min.css">
+<link rel="stylesheet" href="/V2/css/styles.css">
+<style>
+.dev{
+  display:block;
+}
+</style>
+
+<script src="/V2/js/jquery.min.js"></script>
+<script src="/V2/js/R2W.js"></script>
+<script src="/V2/js/jquery-ui.min.js"></script>
+<script src="/V2/js/underscore-min.js"></script>
+
+
+</head>
+<body>
+
+<div class="paper">
+  <h1>R2W / developer</h1>
+
+<pre>
+Developer only 
+
+todo:
+
+1. exporting a specific case as a local json file
+
+2. importing a specific case from local json file
+
+
+</pre>
+
+
+  <h2>User list</h2>
+
+  <div id="list_users"></div>
+  <div id="list_users-dev" class="dev"></div>
+
+
+  <h2>Case list</h2>
+  
+         <div>
+          Filter cases by caseID: (e.g. FNIDN* OR EXIDN* OR PHS*)
+          <input type="text" id="q" onchange="search()" value="*" style="width:calc(100% - 100px)"> 
+            <button onclick="search()">Search</button>
+            
+            
+        </div>
+          <br>
+  <div id="cases"></div>
+  <br>
+  <div id="cases_pagination"></div>
+  <br>
+  <input type="file" id="localjson">
+  <button onclick="importjson()">Import from local json</button>
+
+  <textarea id="cypher" style="width:100%" placeholder="parsed cypher from exported json for db will show here"></textarea>
+
+
+</div>
+<br><br>
+
+<script>
+/*
+var url = new URL(window.location.href);
+url.port = "3100";
+url.pathname = "/admin/users";
+console.log(url)
+*/
+
+function list_users(){
+  get("/admin/users",_list_users)
+}
+var tmp_users = {};
+
+function _list_users(data){
+  tmp_users = {}
+  var original_data = data;
+  //post-process data for selected fields
+  /*
+  by default: validated ⏷	group ⏷	username ⏷	email ⏷	createdAt ⏷	updatedAt
+  custom: username group validated
+  */
+  //var data = _.filter(data, function(d) { return d.group == "ADMIN" || d.group == "EDITOR" || d.group == "UNVALIDATED" });
+  
+  var data = _.map(data, function(d) { return _.pick(d, ['username','group','validated']); });
+
+
+  if (data.length){
+    var tableStr = "<table>"
+    //get header assume keys for one applies to the rest
+    var header = Object.keys(data[0]);
+    tableStr += "<tr>";
+    $.each(header, function(i,d){
+      tableStr += "<th>";
+      tableStr += d;
+      //tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
+      tableStr += ` <span class="usersortBtn"> ⏷</span>`; //need some thoughts on this one
+      tableStr += "</th>";
+    });
+    //additional columns
+    tableStr += "<th>";
+    tableStr += "delete";
+    tableStr += "</th>";
+    tableStr += "</tr>";
+    
+    $.each(data, function(i,d){
+      tableStr += "<tr>";
+      $.each(d, function(key,val){
+        tableStr += "<td>";
+        
+        var tmp = {email:original_data[i].email,username:d.username,group:d.group};
+        tmp_users[d.username] = tmp;
+            
+        //customise for a particular key
+        if (key == "validated"){
+          //tableStr += `${val}`
+          //console.log(val, val == true)
+          if (val == true){
+            tableStr += `approved`
+          }else{
+            tableStr += `<button onclick="validate_user('${d.username}')">approve</button>`
+          }
+          
+        }else{
+          tableStr += `${val}`
+        }
+        
+        
+         tableStr += "</td>";
+      });
+      
+    //additional columns per row of data
+      tableStr += "<td>";
+      tableStr += `<button onclick="confirm_delete_user('${d.username}')">delete</button>`
+      tableStr += "</td>";
+      
+      tableStr += "</tr>";
+    });
+
+    $("#list_users").html(tableStr);
+    init_table_sort();
+  }else{
+    $("#list_users").html("no records");
+  }
+
+
+  //dev
+  //$("#list_users-dev").html(JSON.stringify(data))
+}
+
+list_users()
+
+function validate_user(key){
+  console.log("endpoint to user system ", key)
+  //console.log("endpoint to user system ", key, tmp_users[key])
+  
+  post('/admin/users/validate', {data:tmp_users[key]}, function(d){
+    console.log(d); //{ok:true}
+    if ("ok" in d){
+      list_users();
+    }
+  })
+}
+function confirm_delete_user(key){
+    if (confirm('Delete user: '+ key +"?")) {
+        delete_user(key)
+    } 
+}
+
+
+
+function delete_user(key){
+  //console.log("endpoint to user system ", key, tmp_users[key])
+  console.log("endpoint to user system ", key)
+  
+  var payload = tmp_users[key];
+  
+  del('/admin/users', {data:payload}, function(d){
+    console.log(d); //{ok:true}
+    if ("ok" in d){
+      list_users();
+    }
+  })
+}
+
+
+/////////// client-side table sort
+function init_table_sort(){
+  $('th').click(function(){
+      var table = $(this).parents('table').eq(0)
+      var rows = table.find('tr:gt(0)').toArray().sort(comparer($(this).index()))
+      this.asc = !this.asc
+      if (!this.asc){rows = rows.reverse()}
+      for (var i = 0; i < rows.length; i++){table.append(rows[i])}
+  })
+  function comparer(index) {
+      return function(a, b) {
+          var valA = getCellValue(a, index), valB = getCellValue(b, index)
+          return $.isNumeric(valA) && $.isNumeric(valB) ? valA - valB : valA.toString().localeCompare(valB)
+      }
+  }
+  function getCellValue(row, index){ return $(row).children('td').eq(index).text() }
+}
+
+
+////////////////////////////////////////////
+
+    function search(){
+      //post("/api/v1/cases/search/",{q:$("#q").val()},_search)
+      
+      //$("#cases").html("Loading..."); //replace this with a skeleton table
+      $("#cases").html(`
+      <table class=skeleton>
+      <tr><th><p>▮▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th></tr>
+      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮▮</p></td></tr>
+      <tr><td><p>▮▮▮</p></td><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td></tr>
+      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮</p></td></tr>
+      </table>
+      
+      `); //replace this with a skeleton table
+ 
+      show_cases_summary(0);
+      show_pagination();
+    }
+
+
+//////////////////////////////////////////
+//pagintion
+var state = {
+  page: 0,
+  order: "total"
+}
+function show_cases_summary(page){
+  state.page = page;
+  var url = `/api/v1/cases/getcases/summary/${state.page}/${state.order}`;
+  jqxhr = post(url,{q:$("#q").val()},_show_cases_summary);
+}
+function show_pagination(){
+  var url = `/api/v1/cases/getcases/summary/total`;
+  jqxhr = post(url,{q:$("#q").val()},_show_pagination);
+}
+
+/////////////////////// superceded
+function show_cases_summarySS(page){
+  state.page = page;
+  var url = `/api/v1/cases/getcases/summary/${state.page}/${state.order}`;
+  jqxhr = get(url,_show_cases_summary);
+}
+function show_paginationSS(){
+  var url = `/api/v1/cases/getcases/summary/total`;
+  jqxhr = get(url,_show_pagination);
+}
+///////////////////////
+
+function _show_pagination(total){
+  var items_per_page = 10;
+  var total_pages = 1;
+  var htmlStr = "Page ";
+  
+  console.log(total)
+  if (total>0){
+    total_pages = Math.ceil(Number(total)/items_per_page);
+  }
+  
+  
+  for (var i = 0; i < total_pages; i++){
+    htmlStr += `<button id="page-${i}" onclick="show_cases_summary(${i})">${i+1}</button>`
+  }
+  
+  $("#cases_pagination").html(htmlStr);
+  $(`#cases_pagination button#page-0`).addClass("current");
+}
+function _show_cases_summary(data){
+  console.log(data);
+  //json out
+  var htmlStr = ""
+  $.each(data, function(i,d){
+    htmlStr += JSON.stringify(d);
+    htmlStr += "<br>";
+  });
+  $("#cases_debug").html(htmlStr);
+  
+  //table
+  
+  
+  if (data.length){
+    var tableStr = "<table>"
+    //get header assume keys for one applies to the rest
+    var header = Object.keys(data[0]);
+    tableStr += "<tr>";
+    $.each(header, function(i,d){
+      tableStr += "<th>";
+      tableStr += d;
+      tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
+      tableStr += "</th>";
+      
+    });
+      //additional columns per row of data
+    tableStr += "<th>";
+    tableStr += "export";
+    tableStr += "</th>";
+    tableStr += "<th>";
+    tableStr += "delete";
+    tableStr += "</th>";
+    tableStr += "</tr>";
+    
+    $.each(data, function(i,d){
+      tableStr += "<tr>";
+      $.each(d, function(key,val){
+        tableStr += "<td>";
+        //custom per key
+        if (key == "caseID"){
+          tableStr += `<a href="/view/case/${val}">${val}</a>`
+        }
+        else if (key == "editor"){
+            tableStr += "<select>";
+            tableStr += `<option value="">Not specified</option>`;
+            for (var username in tmp_users){
+              var selected = "";
+              if (username == val){
+                selected = "selected"
+              }
+              tableStr += `<option value="${username}" ${selected}>${username}</option>`;
+            }
+            tableStr += "</select>";
+        }
+        else{
+          tableStr += `${val}`
+        }
+         tableStr += "</td>";
+      });
+      
+      //additional columns per row of data
+      tableStr += "<td>";
+      tableStr += `<button onclick="exportjson_as_file('${d.caseID}')">&#8681;</button>`;
+      tableStr += `<button onclick="export_as_cypher('${d.caseID}')">db</button>`;
+      tableStr += "</td>";
+      tableStr += "<td>";
+      tableStr += `<button onclick="confirm_delete('${d.caseID}')">X</button>`;
+      tableStr += "</td>";
+      
+      tableStr += "</tr>";
+    });
+  
+
+
+    $("#cases").html(tableStr);
+  }else{
+    $("#cases").html("no records");
+  }
+  
+  //update the pagation class
+    $("#cases_pagination button").removeClass("current");
+    $(`#cases_pagination button#page-${state.page}`).addClass("current");
+}
+
+//show_cases_summary(0);
+//show_pagination();
+
+search();
+</script>
+
+
+<script>
+function confirm_delete(){
+  alert("Todo");
+}
+
+//general utility: converts identity to number in javascript
+function toNumber({ low, high }) {
+    let res = high
+    for (let i = 0; i < 32; i++) {
+      res *= 2
+    }
+    return low + res
+}
+//general utility: converts json to n4j format
+function process_json_n4j(jsondata){
+    return JSON.stringify(jsondata).replace(/"([^"]+)":/g, '$1:');
+}
+
+function importjson(){
+  var file =$("#localjson").prop('files')[0];
+  if (file){
+    fr = new FileReader(); // FileReader instance
+    fr.onload = function () {
+      
+      data = fr.result;
+      //////////////////////// preprocess the file before sending it to db
+      try{data = JSON.parse(data)}catch(e)
+      {
+        console.log("unable to parse data as json")
+        console.log(data)
+      }
+        /*
+        [
+          {
+            case:{},
+            event:[],
+            has:[],
+            next:[]
+          }
+        ]
+        */
+        //loop through the list
+        parse_as_cypher(data);
+
+
+      ////////////////////////
+    };
+    fr.readAsText( file );
+    //fr.readAsDataURL( file );
+    
+  }
+}
+function parse_as_cypher(data){
+    $.each(data, function(i,item){
+      //check if caseID is ok i.e. no duplicate
+      console.log(item)
+      var caseID = item.case.properties.caseID;
+      console.log(caseID)
+      if(!caseID){
+        console.log("unable to find caseID");
+        return;
+      }
+      
+      //check if caseID exists
+      get(`/api/v1/cases/caseexists/${caseID}`,function(exists){
+        if (exists != 1){
+          console.log(`Case ${caseID} already exist in the system`)
+          return;
+        }
+        //caseID does not exist in db, continue to other steps
+        //load all Nodes into db (case and event)
+        //first parse the data, store a temporary id as the _oldid
+        item.case.properties["_id"] = toNumber(item.case.identity);
+        delete item.case.identity
+        delete item.case.labels
+        for (var each in item.event){
+          item.event[each].properties["_id"] = toNumber(item.event[each].identity);
+          delete item.event[each].identity
+          delete item.event[each].labels
+          
+        }
+        //resolve relations
+        for (var each in item.has){
+          delete item.has[each].identity
+          delete item.has[each].type
+          item.has[each].start = toNumber(item.has[each].start);
+          item.has[each].end = toNumber(item.has[each].end);
+        }
+        for (var each in item.next){
+          delete item.next[each].identity
+          delete item.next[each].type
+          item.next[each].start = toNumber(item.next[each].start);
+          item.next[each].end = toNumber(item.next[each].end);
+        }
+        
+        console.log(data);
+        //create the cypher query 
+        
+        var cypher = ""
+        
+        cypher += `MERGE(c:Case {caseID:"${caseID}"})\n`
+        cypher += `SET c = ${process_json_n4j(item.case.properties)};\n`
+        
+        for (var each in item.event){
+          var _id = item.event[each].properties._id
+          delete item.event[each].properties._id
+          cypher += `MERGE(e:Event ${process_json_n4j(item.event[each].properties)})\n`
+          cypher += `SET e._id = ${_id};\n`
+        }
+        for (var each in item.has){
+          cypher += `MATCH (c {_id:${item.has[each].start}} ),(e {_id:${item.has[each].end}})\n`
+          cypher += `MERGE (c)-[:HAS]->(e);\n`
+        }
+        for (var each in item.next){
+          cypher += `MATCH (c {_id:${item.next[each].start}} ),(e {_id:${item.next[each].end}})\n`
+          cypher += `MERGE (c)-[:NEXT]->(e);\n`
+        }
+        //clean up
+        cypher +=  `MATCH (n) REMOVE n._id return count(n);`
+        
+        //console.log(cypher)
+        
+        $("#cypher").val(cypher)
+      });
+      
+    })//each
+
+}
+
+
+function exportjson(caseID){
+  console.log(caseID);
+  get('/api/v1/cases/exportjson/'+caseID,function(d){
+    save_as_file(d,caseID)
+  })
+}
+
+function export_as_cypher(caseID){
+  get('/api/v1/cases/exportjson/'+caseID,function(d){
+    parse_as_cypher(d,caseID)
+  })
+}
+
+function save_as_file(textdata,filename){
+  const a = document.createElement('a');
+  const blob = new Blob([JSON.stringify(textdata)]);
+  a.href = URL.createObjectURL(blob);
+  a.download = filename; //save as .txt by default
+  a.click();
+}
+
+</script>
+
+
+
+</body>
+</html>
+
+

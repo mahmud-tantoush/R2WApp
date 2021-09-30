@@ -143,8 +143,8 @@ button.del{
     <div class="panel">
         <h2>Case summary: progress</h2>
          <div>
-          Filter cases by caseID:
-          <input type="text" id="q" onchange="search()" value="FNIDN* OR EXIDN* OR PHS*" style="width:calc(100% - 100px)"> 
+          Filter cases by caseID: (e.g. FNIDN* OR EXIDN* OR PHS*)
+          <input type="text" id="q" onchange="search()" value="*" style="width:calc(100% - 100px)"> 
             <button onclick="search()">Search</button>
         </div>
         <br>
@@ -455,13 +455,13 @@ function _show_cases_summary(data){
     
     $.each(data, function(i,d){
       tableStr += "<tr>";
-      $.each(d, function(ii,dd){
+      $.each(d, function(key,val){
         tableStr += "<td>";
         
-        if (ii == "caseID"){
-          tableStr += `<a href="/view/case/${dd}">${dd}</a>`
+        if (key == "caseID"){
+          tableStr += `<a href="/view/case/${val}">${val}</a>`
         }else{
-          tableStr += `${dd}`
+          tableStr += `${val}`
         }
          tableStr += "</td>";
       });
