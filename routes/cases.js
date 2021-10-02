@@ -126,6 +126,8 @@ router.get(`/getcases/summary/total`, (req, res)=>{
       })
 })
 
+
+// normal use to show full list with pagination
 router.post(`/getcases/summary/total`, (req, res)=>{
    if(!"q" in req.body){
       res.send({error:1}); return;
@@ -142,7 +144,32 @@ RETURN toFloat(count(node))
       .then(result => {
         session.close();
         res.json(result.records[0]._fields[0])
-        
+      })
+      .catch(error => {
+        session.close();
+        res.send(error)
+      })
+})
+
+
+//  use to show list with pagination based on username
+router.post(`/getcases/summary/total/:User`, (req, res)=>{
+    
+   if(!"q" in req.body || !req.params.User){
+      res.send({error:1}); return;
+    }
+    const session = driver.session()
+    //template~ OR test~
+    q = `
+CALL db.index.fulltext.queryNodes('case', 'caseID:${req.body.q}') 
+YIELD node
+WHERE COALESCE(node.hidden, 0) <> 1 AND node.phsVolunteer = "${req.params.User}"
+RETURN toFloat(count(node))
+`
+   session.run(q)
+      .then(result => {
+        session.close();
+        res.json(result.records[0]._fields[0])
       })
       .catch(error => {
         session.close();
@@ -205,7 +232,7 @@ order by total desc
       })
 })
 
-//get 
+//get  superceded
 router.get(`/getcases/summary/:Page/:Order`, (req, res)=>{
     //console.log('/api/v1/getcases link works')
     
@@ -284,12 +311,7 @@ limit 10
       })
 })
 
-
 //post - combines search and summary (requires an index on caseID for Case)
-//
- 
- 
- 
 router.post(`/getcases/summary/:Page/:Order`, (req, res)=>{
     //console.log('/api/v1/getcases link works')
    if(!"q" in req.body){
@@ -319,21 +341,25 @@ YIELD node as c
 WHERE COALESCE(c.hidden, 0) <> 1 
 optional match (c)-[:HAS]->(e:Event)	
 with distinct c, count(e) as total,					
-REDUCE(s = {completed:0.0, overdue:0.0, ongoing:0.0, error:0.0}, e IN collect(e) |					
+REDUCE(s = {completed:0.0, overdue:0.0, ongoing:0.0, planned:0.0, error:0.0}, e IN collect(e) |					
 CASE					
 	WHEN 	e.Completed = "true"  AND e.eventCompletedDate <> "" AND (date(e.eventCompletedDate)  <= date()) AND duration.inDays(date(e.eventStartDate), date(e.eventCompletedDate)).days >= 0			
-		THEN 	{completed:s.completed+1, overdue:s.overdue, ongoing:s.ongoing, error:s.error}		
+		THEN 	{completed:s.completed+1, overdue:s.overdue, ongoing:s.ongoing, planned:s.planned, error:s.error}		
 		ELSE 			
 			CASE WHEN	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) <= date())	
-			THEN 	{completed:s.completed, overdue:s.overdue+1, ongoing:s.ongoing, error:s.error}	
+			THEN 	{completed:s.completed, overdue:s.overdue+1, ongoing:s.ongoing, planned:s.planned, error:s.error}	
 			ELSE 		
-				CASE WHEN 	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) > date())
-				THEN 	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing+1, error:s.error}
-				ELSE	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing, error:s.error+1}
-				END	
+				CASE WHEN 	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) > date()) AND (date(e.eventStartDate) <= date())
+				THEN 	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing+1, planned:s.planned, error:s.error}
+                ELSE
+                    CASE WHEN 	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) > date()) AND (date(e.eventStartDate) > date())
+                    THEN 	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing, planned:s.planned+1, error:s.error}
+                    ELSE	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing, planned:s.planned, error:s.error+1}
+                    END
+                END	
 			END		
 		END) AS status	
-return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.error as error,toFloat(total) as total,c.phsVolunteer as editor
+return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.planned as planned,status.error as error,toFloat(total) as total,c.phsVolunteer as editor
 ${orderbycypher}	
 skip ${10*page}
 limit 10			
@@ -369,6 +395,94 @@ limit 10
         res.send(error)
       })
 })
+
+router.post(`/getcases/summary/:Page/:Order/:User`, (req, res)=>{
+    
+    //console.log('/api/v1/getcases link works')
+   if(!"q" in req.body || !req.params.User){
+      res.send({error:1}); return;
+    }
+    
+    let page = req.params.Page;
+    page = Number(page);
+    if (isNaN(page)){
+      res.json({error:1});
+      return;
+    }
+    
+    let orderbycypher = "order by total desc";
+    console.log(req.body)
+    //if ('order' in req.body){
+      //let orderby = req.body['order'];
+      let orderby = req.params.Order;
+      if (orderby){
+        orderbycypher = `order by ${orderby} desc`;
+      }
+    
+    const session = driver.session()
+    q = `
+CALL db.index.fulltext.queryNodes('case', 'caseID:${req.body.q}') 
+YIELD node as c
+WHERE COALESCE(c.hidden, 0) <> 1 AND c.phsVolunteer = "${req.params.User}"
+optional match (c)-[:HAS]->(e:Event)	
+with distinct c, count(e) as total,					
+REDUCE(s = {completed:0.0, overdue:0.0, ongoing:0.0, planned:0.0, error:0.0}, e IN collect(e) |					
+CASE					
+	WHEN 	e.Completed = "true"  AND e.eventCompletedDate <> "" AND (date(e.eventCompletedDate)  <= date()) AND duration.inDays(date(e.eventStartDate), date(e.eventCompletedDate)).days >= 0			
+		THEN 	{completed:s.completed+1, overdue:s.overdue, ongoing:s.ongoing, planned:s.planned, error:s.error}		
+		ELSE 			
+			CASE WHEN	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) <= date())	
+			THEN 	{completed:s.completed, overdue:s.overdue+1, ongoing:s.ongoing, planned:s.planned, error:s.error}	
+			ELSE 		
+				CASE WHEN 	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) > date()) AND (date(e.eventStartDate) <= date())
+				THEN 	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing+1, planned:s.planned, error:s.error}
+                ELSE
+                    CASE WHEN 	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) > date()) AND (date(e.eventStartDate) > date())
+                    THEN 	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing, planned:s.planned+1, error:s.error}
+                    ELSE	{completed:s.completed, overdue:s.overdue, ongoing:s.ongoing, planned:s.planned, error:s.error+1}
+                    END
+                END	
+			END		
+		END) AS status	
+return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.planned as planned,status.error as error,toFloat(total) as total
+${orderbycypher}	
+skip ${10*page}
+limit 10			
+	
+`
+//console.log(q)
+    session.run(q)
+      .then(result => {
+        session.close();
+        //console.log(result.records)
+        DBlist = []
+        
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+              //console.log(record.length)
+              //console.log(record._fields[i])
+            }
+            //add post-process here -e.g. if it is an integer we can process it here
+            
+            DBlist.push(tmp)
+            
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+      })
+      .catch(error => {
+        session.close();
+        console.log(error);
+        error["error"] = 1;
+        res.send(error)
+      })
+})
+
+
 
 //get 
 router.get(`/metrics/overlap`, (req, res)=>{
@@ -623,17 +737,57 @@ return ID(a),ID(b)`;
 
 })
 
+router.post(`/assign/:caseID`, (req, res)=>{
+    var role = parseQuery(req.query.role); //check role to proceed
+    if (role != "ADMIN"){
+        res.json({status: 0, message: 'user role does not allow this action'})
+        return;
+    }
+    if (!req.params.caseID){
+        res.json({status: 0, message: 'missing caseID'})
+        return;
+    }
+    /*
+    if (!req.body.editor){
+        res.json({status: 0, message: 'missing params'})
+        return;
+    }*/
+    q = `
+MATCH (c:Case {caseID: "${req.params.caseID}"})
+SET c.phsVolunteer = "${req.body.editor}"
+RETURN c;
+`;
 
+    const session = driver.session()
+    session.run(q) 
+    .then(result => {
+        session.close();
+        console.log(result);
+        res.json(result);
+    })
+    .catch(error => {
+      session.close();
+      res.send(error)
+    })
+    
+})
 
 //post
 router.post(`/createcase`, (req, res)=>{
     //console.log('/api/v1/getcases link works')
     //var newCase = JSON.parse(JSON.stringify(req.body))
+    var user = parseQuery(req.query.user); //adds the username as Case.phsVolunteer
+    // and req.query.role
+    
     var newCase = JSON.stringify(req.body)
     var newCase = newCase.replace(/"([^"]+)":/g, '$1:');
     console.log(newCase)
     q1 = "MATCH (p:Case {caseID: '"+req.body['caseID']+"'}) return count(p) as len"
-    q2 = `CREATE (n:Case ${newCase}) return n`
+    q2 = `
+CREATE (n:Case ${newCase}) 
+SET n.phsVolunteer = "${user}"
+return n
+    `
     q = [q1,q2]
 
     
@@ -1134,6 +1288,38 @@ q = `
         error["status"] = 0;
         res.send(error)
       })
+})
+
+
+//utility to get the last item from multiple inputs in querystring or the item where there is only one
+function parseQuery(data){
+    //here we need to look for the last item if it is an array
+    //req.query.user and req.query.role
+    if (Array.isArray(data)){
+        if (data.length > 0){
+            data = data.pop();
+        }else{
+            data = "";
+        }
+    }
+    return data;
+}
+
+//test to see what we can get from the user system to avoid sending things through on the client side
+router.get(`/testbody`, (req, res)=>{
+    
+    /*
+    {
+        "user": [
+            "urlquery",
+            "demoadmin"
+        ],
+        "role": "ADMIN"
+    }
+    */
+    
+    res.json(req.query)
+
 })
 
 

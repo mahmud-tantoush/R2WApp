@@ -3,23 +3,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>R2W case: <%= caseID; %></title>
-<!-- <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"> -->
+
 <link rel="stylesheet" href="/V2/css/jquery-ui.min.css">
 <link rel="stylesheet" href="/V2/css/styles.css">
 <style>
-  .ui-autocomplete {
-      max-height: 200px;
-      overflow-y: auto;
-      /* prevent horizontal scrollbar */
-      overflow-x: hidden;
-    }
-    /* IE 6 doesn't support max-height
-    * we use height instead, but this forces the menu to always be this tall
-    */
-    * html .ui-autocomplete {
-        height: 200px;
-    }
-
 
     div.qr {
         text-align:center;
@@ -34,6 +21,7 @@
           display:none;
         }
     }
+
 </style>
 
 <script src="/V2/js/qrcode.min.js"></script>
@@ -48,7 +36,6 @@
 </head>
 <body>
 
-
 <!-- Mobile Top Navigation Menu -->
 <div class="block"></div>
 
@@ -58,12 +45,12 @@
     &nbsp;
     R2W 
     </a>
-    <!-- Navigation links -->
+    <!-- Navigation links  -->
     <div id="myLinks">
-      <a href="/index#list_case" class="pagelink">&lt; List Cases</a>
+      <a href="/index#list_case" class="pagelink">List Editor's Cases</a>
       <a href="#case_attr" class="pagelink" onclick="setPage('#case_attr');">Case attributes</a>
       <a href="#case_event_page" class="pagelink" onclick="setPage('#case_event_page');">Case Events</a>
-      <a href="#manage_evt" class="pagelink" onclick="setPage('#manage_evt');">Manage Events</a>
+      <a href="#manage_evt" class="pagelink" onclick="setPage('#manage_evt');">Event details</a>
       <a href="#" class="pagelink" onclick="logout()">Logout</a>
     </div>
     <!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
@@ -78,13 +65,6 @@
 
 <!-- Mobile Top Navigation Menu -->
 
-<!-- Desktop Top Navigation Menu -->
-<div class="desktop-nav">
-
-</div>
-
-<!-- Desktop Top Navigation Menu -->
-
 <div class="paper">
 
 
@@ -94,24 +74,21 @@
   <h1>
   Case ID: <%= caseID; %>
   </h1>
-  <b><%= user; %></b> logged in as <b><%= role; %></b>
+  <b><%= user; %></b> view only
+  <p>
+  todo:
+  <li>check if this case is assigned to the current user [WIP]</li>
+  <li>if yes: then allow edit</li>
+  <li>else: view only</li>
+  <li>constrain fields with selected inputs [done, need to add admin edit]</li>
 </div>
 
-
-    <div class="panel3">
+    <div class="panel3" id="case_attr">
         <h2>Case attributes</h2>
         <div id="case_attributes" class="FForm">Loading...</div>
-        
-        <div class="submit_container">
-            <span id="update_case_status"></span>
-            <button onclick="update_case_record()">Update record</button>
-        </div>
-        
-        <div id="case_attributes_debug" class="debug"></div>
     </div>
 
 </div>
-
 
 <div class="panel_wide" id="case_event_page">
   <div class="paper" style="clear:both;">
@@ -126,6 +103,9 @@
       <div id="case_events_debug" class="debug"></div>
   </div>
 </div>
+
+
+
 
 <script>
 //caseID exists?
@@ -149,9 +129,9 @@ function get_case_by_id(){
   var url = `/api/v1/cases/getcase/<%= caseID; %>`;
   jqxhr = get(url, function (data) {
     // $("#case_attributes_debug").html(JSON.stringify(data[0]._fields[0].properties));
-    
+    // {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
     $("#case_attributes").html(makeform(data,[
-        {key:"phsVolunteer",label:"PHS member",type:"text",placeholder:"Internal identifier"},
+        
         {key:"secretary",label:"Secretary",type:"text",placeholder:"Internal identifier"},
         //{key:"secretary_number",label:"Number",type:"number",placeholder:""},
         {key:"Location",label:"Ward name",type:"text",placeholder:"Ward name"},
@@ -210,7 +190,7 @@ function load_timeline(){
     });
 }
 function get_timeline_data(update){
-    var url = `/api/v1/cases/getcaseeventV2/<%= caseID; %>`;
+    var url = `/api/v1/cases/getcaseevent/<%= caseID; %>`;
     jqxhr = get(url, function (data) {
         tmp = process_data(data);
         if (tmp.nodes.length > 0){
@@ -279,7 +259,7 @@ function item_clicked(d){
     
     var data = d.properties;
     var manage_form = makeform(data,[
-        {key:"Label",label:"Label",type:"text"},
+        {key:"Label",label:"Label",type:"select",candidate:availableTags},
         {key:"Completed",label:"Completed",type:"boolean"},
         {key:"eventStartDate",label:"Start date",type:"date"},
         {key:"eventDueDate",label:"Due date",type:"date"},
@@ -356,19 +336,19 @@ function item_clicked(d){
     
     //////////////////////////////////////
     scrollTo("#event");
+    setPage("#manager_evt");
     
     init_auto_complete();
 }
 
+var availableTags = [
+      "Awareness", "Nal Committee Formation", "Secretary Selection", "Document Collection", "Signature / thumbprints on the documents", "Create Settlement Map", "Filling Online form", "LP Authorisation and signature on documents ", "Challan ", "Photocopy of the File", "Dispatch orginal File", "Visit Confirmation by JE", "Response Letter_JE", "JE Visit", "Document Verification", "JE Report", "MS Site Visit", "MS Report to JE", "File passed to AE for approval of P form", "P Form Conditional ", "P Form", "Condition: Individual tap water permission", "Condition: ", "P Form + C Form LP signature", "Road Permision ", "Challan for Road Permission", "Challan for Road Permission Photocopy", "AE, SE, JE Maintenace signature - Road permission", "Challan for Road Permission Photocopy attach to PHS file", "Deposit of tap connection to be paid", "Photo copy of the Deposit reciept to be attached to the PHS file", "Original Reciept to be handed over to Nal Committee Secretary ", "C Form Nal Secretary signature", "SEWW signature on C Form", "HC BIlling signature on C Form", "Inform Nal committee for Meter connection", "Meter card to be signed by SEWW", "Form No. 32 to be filled and attached to the original file", "File certification by AE and SEWW", "Work order by JE Water Chowki", "JE to sign the file in Water Chowki", "Nal Committee to be ready with pipes and plumber", "Trench - Gang from water chowki", "Connection installed"
+    ];
+ 
+
 function init_auto_complete(){
 
     //todo: load this from templateA
-    /*
-    var availableTags = [
-      "Awareness", "Nal Committee Formation", "Secretary Selection", "Document Collection", "Signature / thumbprints on the documents", "Create Settlement Map", "Filling Online form", "LP Authorisation and signature on documents ", "Challan ", "Photocopy of the File", "Dispatch orginal File", "Visit Confirmation by JE", "Response Letter_JE", "JE Visit", "Document Verification", "JE Report", "MS Site Visit", "MS Report to JE", "File passed to AE for approval of P form", "P Form Conditional ", "P Form", "Condition: Individual tap water permission", "Condition: ", "P Form + C Form LP signature", "Road Permision ", "Challan for Road Permission", "Challan for Road Permission Photocopy", "AE, SE, JE Maintenace signature - Road permission", "Challan for Road Permission Photocopy attach to PHS file", "Deposit of tap connection to be paid", "Photo copy of the Deposit reciept to be attached to the PHS file", "Original Reciept to be handed over to Nal Committee Secretary ", "C Form Nal Secretary signature", "SEWW signature on C Form", "HC BIlling signature on C Form", "Inform Nal committee for Meter connection", "Meter card to be signed by SEWW", "Form No. 32 to be filled and attached to the original file", "File certification by AE and SEWW", "Work order by JE Water Chowki", "JE to sign the file in Water Chowki", "Nal Committee to be ready with pipes and plumber", "Trench - Gang from water chowki", "Connection installed"
-    ];
-    */
-    var availableTags = <%-  JSON.stringify(EventLabels) %>
     
     $("#manage_event #Label").autocomplete({
       source: availableTags
@@ -448,45 +428,12 @@ function update_event_record(){
 
 
 <div class="paper" id="manage_evt">
-    <h2 id="event">Manage event</h2>
-    <div id="manage_event" class="FForm">Select an item in the timeline to add or edit</div>
-    <div class="manage_event_btn" style="display:none;text-align:right">
-        <span id="update_event_status"></span>
-        <button id="btn_del" onclick="delete_event_record()">Delete Event</button>
-        <button onclick="update_event_record()">Update Event</button>
-    </div>
-    
-    
-    <div class="manage_event_btn" style="display:none">
-    experimental:<br>
-    <button id="btn_link" onclick="link_record_init()">Link from Event to another</button>
-    <div id="prompt"></div>
+    <h2 id="event">Event details</h2>
+    <div id="manage_event" class="FForm">Select an item in the timeline to view details</div>
 
-    <!--
-    to delete
-    del("/api/v1/cases/eventevent/SOURCE/TARGET",{},function(d){console.log(d)})
-    -->
-    </div>
-<!--
-<p>
-    todo: 
-    <li>add a follow up on the selected Event</li>
-    <li>delete Event</li>
-    <li>connect Event-Event once something is disconnected</li>
- -->
 </div>
 
-<br>
-<br>
-<br>
-<div class="paper panel">
-known issues: 
-<li>When connecting all the end nodes to form a complete loop, the button to add new event will not appear</li>
-<li>Todo: user input to remove links</li> <!--del("/api/v1/cases/eventevent/188/187")-->
-<li>Check for link sanity to avoid - 1. loop back onto itself, 2. loop back from a future event to a past event (i.e past event depends on the completion of a future event) </li>
-<li>It is possible to input completed date BEFORE the start date - which we may assume that is impossible in reality. Todo: sanity check will be put in place, Events with dates that does not make sense will be shown and tagged as "error"
-<li>It is possible to mark Event as Completed in the future - which we may assume that is impossible in reality. Todo: sanity check will be put in place
-</div>
+    
     
 <br>
 <br>

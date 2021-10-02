@@ -1,0 +1,133 @@
+
+<svg width="512" height="512" viewBox="0 0 512 512" 
+      xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="tiny"
+      xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<!--
+
+<path d="M100 462C48 462 7.66667 462 0 462H100ZM100 462C165 462 191 340 256 340C321 340 355 462 412 462M412 462C457.6 462 488.667 462 512 462H412Z" stroke="black" fill="none"/>
+
+M100 462C48 462 7.66667 462 0 462H100ZM100 462C165 462 191 462 256 462C321 462 355 462 412 462M412 462C457.6 462 488.667 462 512 462H412Z
+
+<path d="M100 50C48 50 7.66667 50 0 50H100ZM100 50C165 50 191 172 256 172C321 172 355 51 412 51M412 51C457.6 51 488.667 51 512 51H412Z" stroke="black" fill="none"/>
+
+M100 50C48 50 7.66667 50 0 50H100ZM100 50C165 50 191 50 256 50C321 50 355 51 412 51M412 51C457.6 51 488.667 51 512 51H412Z
+-->
+<style type="text/css">
+
+  
+  @keyframes translate {
+    from { transform: translate(-250px,0px); }
+    to   { transform: translate(250px,0px);}
+  }  
+  
+  .through 
+  { 
+    transform-origin: center;
+    /*animation: translate 2s ease infinite; */
+    animation: translate 2s ease; 
+    animation-fill-mode: forwards; 
+    
+    /*animation-direction: alternate;*/
+    /*animation-play-state: paused;*/
+  }
+  
+  @keyframes highlight {
+    from { fill: #eee; }
+    to   { fill: #fa0;}
+  }  
+  .highlight { 
+    animation: highlight 2s ease; 
+    animation-fill-mode: forwards; 
+    animation-delay: 500ms;
+  }
+  
+  @keyframes translateX {
+    from { transform: translate(-250px,0px); }
+    to   { transform: translate(0px,0px); }
+  }  
+  
+  .stuck { 
+    transform-origin: center;
+    /*animation: translate 2s ease infinite; */
+    animation: translateX 2s ease; 
+    animation-fill-mode: forwards; 
+    
+    /*animation-direction: alternate;*/
+    /*animation-play-state: paused;*/
+   
+  
+  }
+  .stuck:hover { 
+    animation: translateX 2s ease; 
+    animation-fill-mode: forwards; 
+  }
+  
+</style>
+
+
+<path id="shape_path1" 
+stroke="#333" 
+fill="#ffffff" 
+d="M100 456H-49.5L-49.5 44H100 
+C165 44 191 44 256 44 
+C321 44 355 44 412 44 H552.5V456H412 
+C355 456 321 456 256 456
+C191 456 165 456 100 456Z"
+fill-rule="nonzero"
+/>
+
+
+<!--
+<path id="shape_path2" stroke="#333" fill="none" d="M100 462C48 462 7.66667 462 0 462H100ZM100 462C165 462 191 462 256 462C321 462 355 462 412 462M412 462C457.6 462 488.667 462 512 462H412Z"/>-->
+
+<g  id="aniGroup">
+
+<g class="through">
+<rect class="highlight" x="0" y="231" width="512" height="50" fill="#ccc" rx="15"/>
+<rect class="highlight" x="-90" y="231" width="60" height="50" fill="#ccc" rx="15"/>
+<rect x="-280" y="231" width="160" height="50" fill="#ccc" rx="15"/>
+</g>
+<g class="stuck">
+<rect x="-140" y="131" width="256" height="50" fill="#ccc" rx="15"/>
+<rect x="-100" y="331" width="256" height="50" fill="#ccc" rx="15"/>
+</g>  
+
+<!--begin="200ms;aniGroup.mouseover" -->
+<animate xlink:href="#shape_path1"
+      attributeName="d"
+      attributeType="XML"
+      from="M100 456H-49.5L-49.5 44H100 
+C165 44 191 44 256 44 
+C321 44 355 44 412 44 H552.5V456H412 
+C355 456 321 456 256 456
+C191 456 165 456 100 456Z" stroke="black"
+      to="M100 456H-49.5L-49.5 44H100 
+C165 44 191 166 256 166 
+C321 166 355 45 412 45H552.5V456H412 
+C355 456 321 334 256 334
+C191 334 165 456 100 456Z"
+      dur="1s"
+      begin="200ms"
+      calcMode="spline" keyTimes="0;1" keySplines="0.1 0.7 0.9 1.0"
+      fill="freeze" 
+       pointer-events="all"
+      />
+
+<!--
+<animate xlink:href="#shape_path2"
+      attributeName="d"
+      attributeType="XML"
+      from="M100 462C48 462 7.66667 462 0 462H100ZM100 462C165 462 191 462 256 462C321 462 355 462 412 462M412 462C457.6 462 488.667 462 512 462H412Z"
+      to="M100 462C48 462 7.66667 462 0 462H100ZM100 462C165 462 191 340 256 340C321 340 355 462 412 462M412 462C457.6 462 488.667 462 512 462H412Z"
+      dur="1s"
+      begin="200ms"
+      calcMode="spline" keyTimes="0;1" keySplines="0.1 0.7 0.9 1.0"
+      fill="freeze" 
+      pointer-events="all"
+      />
+      
+      -->
+</g>
+
+</svg>

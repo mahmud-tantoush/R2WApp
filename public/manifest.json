@@ -1,0 +1,8 @@
+{
+  "name": "R2W",
+  "short_name": "R2W",
+  "lang": "en-US",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#f80"
+}

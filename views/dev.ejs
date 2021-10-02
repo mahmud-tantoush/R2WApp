@@ -26,12 +26,10 @@
 <pre>
 Developer only 
 
-todo:
-
 1. exporting a specific case as a local json file
-
-2. importing a specific case from local json file
-
+2. generate cypher queries for importing a specific case 
+  a. from a local json file
+  b. from a Case in current db
 
 </pre>
 
@@ -47,7 +45,7 @@ todo:
          <div>
           Filter cases by caseID: (e.g. FNIDN* OR EXIDN* OR PHS*)
           <input type="text" id="q" onchange="search()" value="*" style="width:calc(100% - 100px)"> 
-            <button onclick="search()">Search</button>
+          <button onclick="search()" style="width:95px">Filter</button>
             
             
         </div>
@@ -105,7 +103,7 @@ function _list_users(data){
     });
     //additional columns
     tableStr += "<th>";
-    tableStr += "delete";
+    tableStr += "";
     tableStr += "</th>";
     tableStr += "</tr>";
     
@@ -217,10 +215,10 @@ function init_table_sort(){
       //$("#cases").html("Loading..."); //replace this with a skeleton table
       $("#cases").html(`
       <table class=skeleton>
-      <tr><th><p>▮▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th></tr>
-      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮▮</p></td></tr>
-      <tr><td><p>▮▮▮</p></td><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td></tr>
-      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮</p></td></tr>
+      <tr><th><span>000000</span></th><th><span>00000</span></th><th><span>00000</span></th></tr>
+      <tr><td><span>0000</span></td><td><span>000</span></td><td><span>00</span></td></tr>
+      <tr><td><span>000</span></td><td><span>0000</span></td><td><span>000</span></td></tr>
+      <tr><td><span>0000</span></td><td><span>000</span></td><td><span>0</span></td></tr>
       </table>
       
       `); //replace this with a skeleton table
@@ -295,18 +293,19 @@ function _show_cases_summary(data){
     var header = Object.keys(data[0]);
     tableStr += "<tr>";
     $.each(header, function(i,d){
-      tableStr += "<th>";
+      if (d == "editor" || d == "caseID"){
+        tableStr += "<th class=adjust>";
+      }else{
+        tableStr += "<th>";
+      }
       tableStr += d;
       tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
       tableStr += "</th>";
       
     });
       //additional columns per row of data
-    tableStr += "<th>";
-    tableStr += "export";
-    tableStr += "</th>";
-    tableStr += "<th>";
-    tableStr += "delete";
+    tableStr += "<th class=adjust>";
+    tableStr += "db actions";
     tableStr += "</th>";
     tableStr += "</tr>";
     
@@ -319,8 +318,8 @@ function _show_cases_summary(data){
           tableStr += `<a href="/view/case/${val}">${val}</a>`
         }
         else if (key == "editor"){
-            tableStr += "<select>";
-            tableStr += `<option value="">Not specified</option>`;
+            tableStr += `<select id="editor-${d.caseID}" onchange="assign_case('${d.caseID}')">`;
+            tableStr += `<option value=""></option>`;
             for (var username in tmp_users){
               var selected = "";
               if (username == val){
@@ -338,10 +337,8 @@ function _show_cases_summary(data){
       
       //additional columns per row of data
       tableStr += "<td>";
-      tableStr += `<button onclick="exportjson_as_file('${d.caseID}')">&#8681;</button>`;
+      tableStr += `<button onclick="exportjson_as_file('${d.caseID}')">f</button>`;
       tableStr += `<button onclick="export_as_cypher('${d.caseID}')">db</button>`;
-      tableStr += "</td>";
-      tableStr += "<td>";
       tableStr += `<button onclick="confirm_delete('${d.caseID}')">X</button>`;
       tableStr += "</td>";
       
@@ -368,10 +365,15 @@ search();
 
 
 <script>
+
+
 function confirm_delete(){
   alert("Todo");
 }
 
+
+
+///////////////////////////////////////
 //general utility: converts identity to number in javascript
 function toNumber({ low, high }) {
     let res = high
@@ -521,6 +523,17 @@ function save_as_file(textdata,filename){
 </script>
 
 
+
+<script>
+//reassign Case to selected editor
+
+function assign_case(caseID){
+  var to = $(`#editor-${caseID}`).val();
+  post(`/api/v1/cases/assign/${caseID}`,{editor:to},function(d){console.log(d);});
+
+}
+
+</script>
 
 </body>
 </html>

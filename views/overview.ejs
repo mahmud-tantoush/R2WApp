@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -6,13 +7,8 @@
 <title>
 R2W V2
 </title>
-<Script src="/V2/js/jquery.min.js"></script>
-<Script src="/V2/js/underscore-min.js"></script>
-<Script src="/V2/js/d3.v4.min.js"></script>
-<Script src="/V2/js/R2W.js"></script>
+
 <link rel="stylesheet" href="/V2/css/styles.css">
-
-
 <style>
 .submit_container{display:block}
 
@@ -29,23 +25,81 @@ button.del{
 .current{
   background:#ccc;
 }
-/*loading skeleton for table*/
-.skeleton p {
-    opacity: 1;
-    animation: fade 2s linear infinite;
-}
-@keyframes fade {
-  0%,100% { opacity: 0.2 }
-  50% { opacity: 0.8 }
-}
+
 
 </style>
-<body>
-<div class="paper">
-    <h1>R2W / Overview (Dashboard)</h1>
 
+<Script src="/V2/js/jquery.min.js"></script>
+<Script src="/V2/js/underscore-min.js"></script>
+<Script src="/V2/js/d3.v4.min.js"></script>
+<Script src="/V2/js/R2W.js"></script>
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+<body>
+
+
+<!-- Mobile Top Navigation Menu -->
+<div class="block"></div>
+
+<div class="mobile-nav">
+    <a href="/" class="active pagelink" onclick="$('.panel').hide();$('#intro').show();">
+<img src="/V2/images/R2Wlogo.svg" height="18px" align="top">
+    &nbsp;
+    R2W 
+    </a>
+    <!-- Navigation links  -->
+    <div id="myLinks">
+      <a href="#summary" class="pagelink" onclick="setPage('#summary');">Progress summary</a>
+      <a href="#case_comparison" class="pagelink" onclick="setPage('#case_comparison');">Case Comparison</a>
+      <a href="#" class="pagelink" onclick="logout()">Logout</a>
+    </div>
+    <!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
+    <a href="javascript:applinks();" class="icon">
+      <i class="fa fa-bars"></i>
+    </a>
+</div>
+
+<div class="mobile-spacer">
+<br><br>
+</div>
+
+<!-- Mobile Top Navigation Menu -->
+
+
+
+<div class="paper">
+
+
+ <div class="panel" id="intro">
+    <h1>R2W / Overview</h1>
+
+
+     
+        <pre>
+<h2>Technical notes</h2>
+Reporting and navigation:
+todo 1: dashboard showing summary of cases e.g. number of events recorded, current status etc [CURRENT]
+todo 2: pagination (ways to navigate when there are more records) [CURRENT]
+todo 3: order by [CURRENT]
+todo 4: search - filter summary by keywords with wildcards* and fuzzy search~ [CURRENT]
+todo 5: additional reporting insights (e.g. compare with templateA)
+todo 6: rename "overview" as "dashboard"
+
+User system integration:
+todo 1: Admin view - list Editors, approve (validate) Editor, reassign Case to an Editor
+todo 2: Editor view - list Cases for editing
+
+Documentation:
+todo 1: definition of "completed", "overdue", "ongoing" and "error"
+todo 2: measures and interpretations for Case comparisons
+        </pre>
+    </div>
     
-    <div class="panel" style="display:none">
+    <!--
+    <div class="panel">
         <h2>Add Case</h2>
         <div id="new_case" class="FForm">Loading...</div>
         
@@ -53,29 +107,10 @@ button.del{
             <span id="update_case_status"></span>
             <button onclick="new_case()">Add</button>
         </div>
-        
     </div>
+    -->
     
-    <div class="panel">
-        <h2>Dev log</h2>
-        Reporting and navigation:<br>
-        todo 1: dashboard showing summary of cases e.g. number of events recorded, current status etc [CURRENT]<br>
-        todo 2: pagination (ways to navigate when there are more records) [CURRENT]<br>
-        todo 3: order by [CURRENT]<br>
-        todo 4: search - filter summary by keywords with wildcards* and fuzzy search~ [CURRENT]<br>
-        todo 5: additional reporting insights (e.g. compare with templateA)<br>
-        todo 6: rename "overview" as "dashboard"
-        <p>
-        User system integration:<br>
-        todo 1: Admin view - list Editors, approve (validate) Editor, reassign Case to an Editor<br>
-        todo 2: Editor view - list Cases for editing
-        <p>
-        Documentation:<br>
-        todo 1: definition of "completed", "overdue", "ongoing" and "error"<br>
-        todo 2: measures and interpretations for Case comparisons<br>
-    </div>
     
-
     <script>
     
     //debug only
@@ -85,10 +120,10 @@ button.del{
       //$("#cases").html("Loading..."); //replace this with a skeleton table
       $("#cases").html(`
       <table class=skeleton>
-      <tr><th><p>▮▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th></tr>
-      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮▮</p></td></tr>
-      <tr><td><p>▮▮▮</p></td><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td></tr>
-      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮</p></td></tr>
+      <tr><th><span>000000</span></th><th><span>00000</span></th><th><span>00000</span></th></tr>
+      <tr><td><span>0000</span></td><td><span>000</span></td><td><span>00</span></td></tr>
+      <tr><td><span>000</span></td><td><span>0000</span></td><td><span>000</span></td></tr>
+      <tr><td><span>0000</span></td><td><span>000</span></td><td><span>0</span></td></tr>
       </table>
       
       `); //replace this with a skeleton table
@@ -110,6 +145,7 @@ button.del{
             $.each(header, function(i,d){
               tableStr += "<th>";
               tableStr += d;
+              tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"><img src="/V2/images/down.png" width="20" align="top"></span>`; //need some thoughts on this one
               //tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
               tableStr += "</th>";
             });
@@ -140,12 +176,12 @@ button.del{
     </script>
     
     
-    <div class="panel">
+    <div class="panel" id="summary">
         <h2>Case summary: progress</h2>
          <div>
           Filter cases by caseID: (e.g. FNIDN* OR EXIDN* OR PHS*)
-          <input type="text" id="q" onchange="search()" value="*" style="width:calc(100% - 100px)"> 
-            <button onclick="search()">Search</button>
+              <input type="text" id="q" onchange="search()" value="*" style="width:calc(100% - 100px)"> 
+                <button onclick="search()" style="width:95px">Filter</button>
         </div>
         <br>
         <div id="search_result"></div>
@@ -153,11 +189,13 @@ button.del{
         
         <div id="cases">Loading...</div>
         <div id="cases_debug" class="debug">Loading...</div>
-        <br>
+        <div id="cases_status">&nbsp;</div>
         <div id="cases_pagination"></div>
 
-
-        
+    </div>
+    
+    
+    <div class="panel" id="case_comparison">
         <h2>Metrics (WIP)</h2>
         
         
@@ -184,7 +222,7 @@ Note: will sort out the size of chart and labels etc once we have the dynamic el
         Method: Overlap the set of Events in B with the set of Events in A <br>
         Interpretation: the more overlap with templateA, the more progress has been made<br>
         Limitations: the order/sequence of events is not considered here
-        
+        <p>
         Measure: Jaccard<br>
         Method: The ratio between overlapped set of Events in B with set of Events in A and the total number of Events in A<br>
         Interpretation: the higher the measure, the more progress has been made with reference to A<br>
@@ -388,7 +426,11 @@ var state = {
   order: "total"
 }
 function show_cases_summary(page){
+
+  $("#cases_status").html("loading...")
+  
   state.page = page;
+  
   var url = `/api/v1/cases/getcases/summary/${state.page}/${state.order}`;
   jqxhr = post(url,{q:$("#q").val()},_show_cases_summary);
 }
@@ -441,14 +483,15 @@ function _show_cases_summary(data){
   
   
   if (data.length){
-    var tableStr = "<table>"
+    var tableStr = "<div class='stats'><table>"
     //get header assume keys for one applies to the rest
     var header = Object.keys(data[0]);
     tableStr += "<tr>";
     $.each(header, function(i,d){
       tableStr += "<th>";
       tableStr += d;
-      tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
+      //tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
+      tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"><img src="/V2/images/down.png" width="20" align="top"></span>`; //need some thoughts on this one
       tableStr += "</th>";
     });
     tableStr += "</tr>";
@@ -468,10 +511,16 @@ function _show_cases_summary(data){
       tableStr += "</tr>";
     });
 
+    tableStr += "</table>";
+    tableStr += "</div>";
+
     $("#cases").html(tableStr);
   }else{
     $("#cases").html("no records");
   }
+  
+  //update status message
+  $("#cases_status").html("&nbsp;")
   
   //update the pagation class
     $("#cases_pagination button").removeClass("current");

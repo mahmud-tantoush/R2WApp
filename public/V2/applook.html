@@ -1,7 +1,20 @@
 <!DOCTYPE html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=yes">
+
+<link rel="manifest" href="/manifest.json">
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="application-name" content="R2W">
+<meta name="apple-mobile-web-app-title" content="R2W">
+<meta name="theme-color" content="#f80">
+<meta name="msapplication-navbutton-color" content="#f80">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="msapplication-starturl" content="/">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+<!--<meta name="viewport" content="width=device-width, initial-scale=1.0">-->
 <title>R2W user</title>
 <link rel="stylesheet" href="/V2/css/jquery-ui.min.css">
 <link rel="stylesheet" href="/V2/css/styles.css">
@@ -12,73 +25,123 @@
   display:block;
 }
 
+div[class^="mobile-"]{
+    display:none;
+}
+
+
+/* MOBILE */
+@media only screen and (max-width: 600px) {
+    div[class^="mobile-"]{
+        display:block;
+    }
+}
+/* TABLET */
+
+
+.mobile-nav{
+  background: #888;
+  width:100vw;
+  overflow: hidden;
+  position: fixed;
+}
+
+/* Hide the links inside the navigation menu (except for logo/home) */
+.mobile-nav #myLinks {
+  display: none;
+}
+
+/* Style navigation menu links */
+.mobile-nav a {
+  color: #fff;
+  padding: 14px 14px;
+  text-decoration: none;
+  font-size: 1rem;
+  display: block;
+}
+
+/* Style the hamburger menu */
+.mobile-nav a.icon {
+  background: #555;
+  display: block;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+/* Add a grey background color on mouse-over */
+.mobile-nav a:hover {
+  background-color: #888;
+  color: #fff;
+}
+
+/* Style the active link (or home/logo) */
+.active {
+  background-color: #555;
+  color: white;
+}
+
+
 </style>
 
 <script src="/V2/js/jquery.min.js"></script>
 <script src="/V2/js/R2W.js"></script>
 <script src="/V2/js/jquery-ui.min.js"></script>
 <script src="/V2/js/underscore-min.js"></script>
-
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
 
 </head>
 <body>
 
-
-
-<!-- Mobile Top Navigation Menu -->
-<div class="block"></div>
-
 <div class="mobile-nav">
-    <a href="/" class="active pagelink" onclick="$('.panel').hide();$('#intro').show();">
-    <img src="/V2/images/R2Wlogo.svg" height="18px" align="top">
-    &nbsp;
-    R2W 
+  <!-- Top Navigation Menu -->
+    <a href="#home" class="active pagelink">
+    <!--<img src="/V2/images/R2Wlogo.svg" height="10px">-->
+    R2W
     </a>
-    <!-- Navigation links -->
+    <!-- Navigation links (hidden by default) -->
     <div id="myLinks">
-      <a href="#add_case" class="pagelink" onclick="setPage('#add_case');">Add Case</a>
-      <a href="#list_case" class="pagelink" onclick="setPage('#list_case');">List Editor's Cases</a>
-      <a href="#" class="pagelink" onclick="logout()">Logout</a>
+      <a href="#news" class="pagelink">Add Case</a>
+      <a href="#contact" class="pagelink">List Cases</a>
+      <a href="#logout" class="pagelink">Logout</a>
     </div>
     <!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
     <a href="javascript:applinks();" class="icon">
       <i class="fa fa-bars"></i>
     </a>
 </div>
+<script>
+function applinks() {
+/*
+  var x = document.getElementById("myLinks");
+  if (x.style.display === "block") {
+    x.style.display = "none";
+  } else {
+    x.style.display = "block";
+  }*/
+  $("#myLinks").toggle();
+}
+$(".mobile-nav .pagelink").on("click",function(e){
+  //console.log($(e.target).hasClass('icon'));
+  $("#myLinks").hide();
+
+});
+
+</script>
+
+
 <div class="mobile-spacer">
 <br><br>
 </div>
 
-<!-- Mobile Top Navigation Menu -->
-
-
 <div class="paper">
-
-  <div class="panel" id="intro">
-    <h1>R2W / Editor portal</h1>
-    <b><%= user; %></b> logged in as <b><%= role; %></b>
-    <p>
-    See <a href="/overview">Overview</a> for metrics and insights across all records
-
-    
-  </div>
+  <h1>R2W / Editor portal</h1>
+  <b><%= user; %></b> logged in as <b><%= role; %></b>
   
-  <div class="panel" id="note">
-<pre>
-<h2>Technical notes</h2>
-Editor only portal only showing important information for day to day editor purposes
-
-Editor can add a new case, the new case will be associated with the user.
-The Case list displays only cases with the username as the named person for editing the case.
-It is also important for editor to view other cases (but not editing) assessed via <a href="/overview">overview</a>. 
-
-</pre>
-</div>
 
 
-    <div class="panel" id="add_case">
+    <div class="panel">
         <h2>Add Case</h2>
         <div id="new_case" class="FForm">Loading...</div>
         
@@ -90,8 +153,8 @@ It is also important for editor to view other cases (but not editing) assessed v
 
 
 
-    <div class="panel" id="list_case">
-      <h2>Editor's Cases</h2>
+    <div class="panel">
+      <h2>Case list</h2>
       
              <div>
               Filter cases by caseID: (e.g. FNIDN* OR EXIDN* OR PHS*)<br>
@@ -288,7 +351,7 @@ function _show_cases_summary(data){
   
   
   if (data.length){
-    var tableStr = "<div class='stats'><table>"
+    var tableStr = "<table>"
     //get header assume keys for one applies to the rest
     var header = Object.keys(data[0]);
     tableStr += "<tr>";
@@ -330,8 +393,7 @@ function _show_cases_summary(data){
       
       tableStr += "</tr>";
     });
-    tableStr += "</table>";
-    tableStr += "</div>";
+  
 
 
     $("#cases").html(tableStr);

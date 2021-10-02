@@ -213,7 +213,21 @@ function makeform(jsonobj,config){
                     if (value){
                         htmlStr += `<div style="text-align:right"><a href="${value}">[open]</a></span>`;
                     }
-                    
+                }
+                else if (item.type == 'select'){
+                  
+                 
+                  htmlStr += `<select id="${item.key}" name="${item.key}" class="editor" ${placeholder}>`;
+                  
+                  for (var ii in item.candidate){
+                    var selected = ""
+                    if (item.candidate[ii] == value){
+                      selected = "selected"
+                    }
+                    htmlStr += `<option value="${item.candidate[ii]}" ${selected}>${item.candidate[ii]}</option>`;
+                  }
+                  
+                  htmlStr += "</select>";
                 }
                 else{
                     //standard text input
@@ -276,7 +290,7 @@ function parseform(domid){
 //page interaction
 function scrollTo(domid){
     $('html, body').animate({
-    scrollTop: $(domid).offset().top
+    scrollTop: $(domid).offset().top-50
     }, 200);
 }
 
@@ -314,3 +328,84 @@ function formatDate(date) {
     var day = (date.getDate() + 100).toString().substring(1);
     return year + "-" + month + "-" + day;
 }
+
+//////////////////// common api endpoints access
+
+
+function logout(){
+  get("/api/action/user/logout",function(d){ window.location.href='/' });
+}
+
+//////////////////// navigation
+
+
+
+function applinks() {
+  $("#myLinks").toggle();
+  if($("#myLinks").is(':visible')){
+    $(".block").show();
+  }else{
+    $(".block").hide();
+  }
+}
+$(".mobile-nav .pagelink").on("click",function(e){
+  //console.log($(e.target).hasClass('icon'));
+  $("#myLinks").hide();
+  $(".block").hide();
+
+});
+
+$( document ).ready(function() {
+   $(".block").on("click",function(e){
+    $("#myLinks").hide();
+    $(".block").hide();
+  });
+});
+
+
+
+$(window).on("resize",function(e){
+  console.log("resize");
+  setView();
+});
+$(window).on("load",function(e){
+  console.log("load");
+  setView();
+});
+function setPage(hash){
+  $('.panel').hide();
+  $("#myLinks").hide();
+  //$("#qrcode").hide();
+  $('.block').hide();
+  $(hash).show(0,  function() {
+      //console.log($("html").scrollTop())
+      //$("html").scrollTop(0);
+      //$("html, body").animate({ scrollTop: "0" });
+       scrollTo(hash);
+  });
+ 
+}
+function setView(){
+
+  if($(window).width() > 600){
+     $(".panel").show();
+     $("#myLinks").hide();
+     $(".block").hide();
+  }else{
+
+      //on mobile
+      //$(".mobile-nav").show();
+      //$(".mobile-spacer").show();
+      $(".panel").hide();
+      
+      if(window.location.hash){
+        //$(":target").show();
+        //$(window.location.hash).show();
+        setPage(window.location.hash)
+      }else{
+        $("#intro").show();
+      }
+  }
+}
+
+

@@ -1,13 +1,40 @@
 <!DOCTYPE html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=yes">
 <title>R2W user</title>
 <link rel="stylesheet" href="/V2/css/jquery-ui.min.css">
 <link rel="stylesheet" href="/V2/css/styles.css">
 <style>
+.submit_container{display:block}
 .dev{
   display:block;
+}
+
+
+@media only screen and (max-width: 600px) {
+    .panel{
+      display:none;
+    }
+    .paper{
+      width:100vw;
+      overflow-x:hidden;
+      overflow-y:auto;
+    }
+    .stats{
+      max-width:100vw;
+      overflow-x:scroll;
+    }
+    
+    th:nth-child(1), td:nth-child(1) {  
+      position: -webkit-sticky;
+      position: sticky;
+      left:0px;
+      /*background: red;*/
+    }
+    td:nth-child(1) {
+      background:inherit;
+    }
 }
 </style>
 
@@ -16,54 +43,181 @@
 <script src="/V2/js/jquery-ui.min.js"></script>
 <script src="/V2/js/underscore-min.js"></script>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 </head>
 <body>
 
+
+
+<!-- Mobile Top Navigation Menu -->
+<div class="block"></div>
+<div class="mobile-nav">
+    <a href="/" class="active pagelink" onclick="$('.panel').hide();$('#intro').show();">
+    <img src="/V2/images/R2Wlogo.svg" height="18px" align="top">
+    &nbsp;
+    R2W 
+    </a>
+    <!-- Navigation links -->
+    <div id="myLinks">
+      <a href="#list_user" class="pagelink" onclick="setPage('#list_user');">List Users</a>
+      <a href="#add_case" class="pagelink" onclick="setPage('#add_case');">Add Case</a>
+      <a href="#list_case" class="pagelink" onclick="setPage('#list_case');">List Cases</a>
+      <a href="#" class="pagelink" onclick="logout()">Logout</a>
+    </div>
+    <!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
+    <a href="javascript:applinks();" class="icon">
+      <i class="fa fa-bars"></i>
+    </a>
+</div>
+
+
+<div class="mobile-spacer">
+<br><br>
+</div>
+<!-- Mobile Top Navigation Menu -->
+
 <div class="paper">
-  <h1>R2W / Admin</h1>
+  <div class="panel" id="intro">
+    <h1>R2W / Admin portal</h1>
+    <b><%= user; %></b> logged in as <b><%= role; %></b>
+    
+    <p>
+    See <a href="/overview">Overview</a> for metrics and insights across all records
 
+  </div>
+
+<div class="panel" id="note">
 <pre>
-Admin only 
-
-todo:
+<h2>Technical notes</h2>
+Admin only portal only showing important information for admin purposes
 
 1. User list: list editors in the system 
-  (a full list via :3100/admin/users, includes GUEST, ADMIN etc. Can we list only EDITOR? from server side? - for Sam) [done]
+  a full list via :3100/admin/users, includes GUEST, ADMIN etc. [done]
+  note for Sam: Can we list only EDITOR? from server side?
   
 2. User list: approve editors
-  button to an endpoint to set validated:true [done]
-  note for Sam: edited adminViews to set group as EDITOR on validateUser
+  button to an endpoint to approve a user (set user validated:true) [done]
+  note for Sam: edited adminViews to set default group as EDITOR on validateUser
 
-3. Case list: re-assign Case to editors 
+3. Case list: re-associate a Case to a specific editor
+  todo: onselect change editor to Case [done]
+  todo: find all with associated to a specified user re-associate with a different user [todo]
 
 </pre>
+</div>
 
 
-  <h2>User list</h2>
+    <div class="panel" id="list_user">
 
-  <div id="list_users"></div>
-  <div id="list_users-dev" class="dev"></div>
+      <h2>Users</h2>
+
+      <div id="list_users"></div>
+      <div id="list_users-dev" class="dev"></div>
+    </div>
 
 
-  <h2>Case list</h2>
-  
-         <div>
-          Filter cases by caseID: (e.g. FNIDN* OR EXIDN* OR PHS*)
-          <input type="text" id="q" onchange="search()" value="*" style="width:calc(100% - 100px)"> 
-            <button onclick="search()">Search</button>
-            
-            
+    <div class="panel" id="add_case">
+        <h2>Add Case</h2>
+        <div id="new_case" class="FForm">Loading...</div>
+        
+        <div class="submit_container">
+            <span id="update_case_status"></span>
+            <button onclick="new_case()">Add</button>
         </div>
-          <br>
-  <div id="cases"></div>
-  <br>
-  <div id="cases_pagination"></div>
-
-
-
+    </div>
+    
+    
+    <div class="panel" id="list_case">
+      <h2>Cases</h2>
+      
+             <div>
+              Filter cases by caseID: (e.g. FNIDN* OR EXIDN* OR PHS*)<br>
+              <input type="text" id="q" onchange="search()" value="*" style="width:calc(100% - 100px)"> 
+                <button onclick="search()" style="width:95px">Filter</button>
+                
+                
+            </div>
+            <div id="cases_status">&nbsp;</div>
+      <div id="cases"></div>
+      <br>
+      <div id="cases_pagination"></div>
+    </div>
+    
 </div>
 <br><br>
+
+
+
+<script>
+//new case
+function new_case(){
+  var url = `/api/v1/cases/createcase`;
+  var id = $("#new_case #caseID").val();
+  if (id){
+      data = {caseID: id }
+      jqxhr = post(url,data,inspectJSON);
+      //post("/api/v1/cases/createcase",{caseID: 'test'},function(d){console.log(d)});
+  }else{
+     $("#update_case_status").html("enter case reference");
+  }
+}
+function check_duplicate_caseid(){
+    var id = $("#new_case #caseID").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,show_duplicate_caseid);
+    }
+}
+function show_duplicate_caseid(data){
+    if (Number(data) == 0){
+        $("#update_case_status").html("");
+    }else{
+        $("#update_case_status").html("caseID already exists");
+    }
+}
+
+function caseexists(){
+    var id = $("#newcaseid").val();
+    if(id){
+        var url = `/api/v1/cases/caseexists/${id}`;
+        jqxhr = get(url,inspectJSON);
+    }else{
+        $("#newcaseid").focus()
+    }
+}
+function inspectJSON(d){
+    if (d.status){
+      console.log(d)
+      $("#update_case_status").html(`${d.message}: <a href="/view/case/${d.data}">${d.data}</a>`);
+
+      search();
+
+    }else{
+      $("#update_case_status").html(`${d.message}`)
+    }
+    
+    
+}
+
+//////////////////////////////////////////
+function init_form(){
+    var manage_form = makeform({},[
+        {key:"caseID",label:"Case ID",type:"text",placeholder:"Case Reference"},
+    ])
+    $("#new_case").html(manage_form);
+    
+    $("#new_case_btn").show()
+    
+    $("#new_case #caseID").on('change', function(d){
+        check_duplicate_caseid()
+        console.log("check");
+    })
+    
+}
+init_form();
+</script>
+
 
 <script>
 /*
@@ -92,7 +246,7 @@ function _list_users(data){
 
 
   if (data.length){
-    var tableStr = "<table>"
+    var tableStr = "<div class='stats'><table>"
     //get header assume keys for one applies to the rest
     var header = Object.keys(data[0]);
     tableStr += "<tr>";
@@ -100,12 +254,12 @@ function _list_users(data){
       tableStr += "<th>";
       tableStr += d;
       //tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
-      tableStr += ` <span class="usersortBtn"> ⏷</span>`; //need some thoughts on this one
+      tableStr += ` <span class="usersortBtn"><img src="/V2/images/down.png" width="20" align="top"></span>`; //need some thoughts on this one
       tableStr += "</th>";
     });
     //additional columns
     tableStr += "<th>";
-    tableStr += "delete";
+    tableStr += "";
     tableStr += "</th>";
     tableStr += "</tr>";
     
@@ -142,20 +296,25 @@ function _list_users(data){
       
       tableStr += "</tr>";
     });
-
+    tableStr += "</table>";
+    tableStr += "</div>";
+    
     $("#list_users").html(tableStr);
     init_table_sort();
   }else{
     $("#list_users").html("no records");
   }
 
-
+  search();
   //dev
   //$("#list_users-dev").html(JSON.stringify(data))
 }
 
 list_users()
 
+
+
+/////////////////////////////////
 function validate_user(key){
   console.log("endpoint to user system ", key)
   //console.log("endpoint to user system ", key, tmp_users[key])
@@ -172,8 +331,6 @@ function confirm_delete_user(key){
         delete_user(key)
     } 
 }
-
-
 
 function delete_user(key){
   //console.log("endpoint to user system ", key, tmp_users[key])
@@ -217,10 +374,10 @@ function init_table_sort(){
       //$("#cases").html("Loading..."); //replace this with a skeleton table
       $("#cases").html(`
       <table class=skeleton>
-      <tr><th><p>▮▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th><th><p>▮▮▮▮▮</p></th></tr>
-      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮▮</p></td></tr>
-      <tr><td><p>▮▮▮</p></td><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td></tr>
-      <tr><td><p>▮▮▮▮</p></td><td><p>▮▮▮</p></td><td><p>▮</p></td></tr>
+      <tr><th><span>000000</span></th><th><span>00000</span></th><th><span>00000</span></th></tr>
+      <tr><td><span>0000</span></td><td><span>000</span></td><td><span>00</span></td></tr>
+      <tr><td><span>000</span></td><td><span>0000</span></td><td><span>000</span></td></tr>
+      <tr><td><span>0000</span></td><td><span>000</span></td><td><span>0</span></td></tr>
       </table>
       
       `); //replace this with a skeleton table
@@ -230,6 +387,20 @@ function init_table_sort(){
     }
 
 
+
+//////////////////////////////////////////
+function confirm_delete(id){
+    if (confirm('Delete caseID: '+ id +"?")) {
+        delete_case(id)
+    } 
+}
+
+function delete_case(id){
+  var url = `/api/v1/cases/case/${id}`;
+  jqxhr = del(url,{},inspectJSON);
+}
+
+
 //////////////////////////////////////////
 //pagintion
 var state = {
@@ -237,6 +408,9 @@ var state = {
   order: "total"
 }
 function show_cases_summary(page){
+
+  $("#cases_status").html("loading...")
+
   state.page = page;
   var url = `/api/v1/cases/getcases/summary/${state.page}/${state.order}`;
   jqxhr = post(url,{q:$("#q").val()},_show_cases_summary);
@@ -290,18 +464,25 @@ function _show_cases_summary(data){
   
   
   if (data.length){
-    var tableStr = "<table>"
+    var tableStr = "<div class='stats'><table>"
     //get header assume keys for one applies to the rest
     var header = Object.keys(data[0]);
     tableStr += "<tr>";
     $.each(header, function(i,d){
-      tableStr += "<th>";
+      if (d == "editor" || d == "caseID"){
+        tableStr += "<th class=adjust>";
+      }else{
+        tableStr += "<th>";
+      }
+      tableStr += `<span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn">`
       tableStr += d;
-      tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
+      tableStr += ` <img src="/V2/images/down.png" width="20" align="top"></span>`; //need some thoughts on this one
       tableStr += "</th>";
     });
       //additional columns per row of data
+      tableStr += "<th>";
       
+      tableStr += "</th>";
  
     tableStr += "</tr>";
     
@@ -314,8 +495,8 @@ function _show_cases_summary(data){
           tableStr += `<a href="/view/case/${val}">${val}</a>`
         }
         else if (key == "editor"){
-            tableStr += "<select>";
-            tableStr += `<option value="">Not specified</option>`;
+            tableStr += `<select id="editor-${d.caseID}" onchange="assign_case('${d.caseID}')">`;
+            tableStr += `<option value=""></option>`;
             for (var username in tmp_users){
               var selected = "";
               if (username == val){
@@ -333,19 +514,24 @@ function _show_cases_summary(data){
       
       //additional columns per row of data
 
-
-
+      tableStr += "<td>";
+      tableStr += `<button onclick="confirm_delete('${d.caseID}')">X</button>`;
+      tableStr += "</td>";
       
       
       tableStr += "</tr>";
     });
   
-
+    tableStr += "</table>";
+    tableStr += "</div>";
 
     $("#cases").html(tableStr);
   }else{
     $("#cases").html("no records");
   }
+  
+  //update status message
+  $("#cases_status").html("&nbsp;")
   
   //update the pagation class
     $("#cases_pagination button").removeClass("current");
@@ -355,8 +541,21 @@ function _show_cases_summary(data){
 //show_cases_summary(0);
 //show_pagination();
 
-search();
+//search(); //note need to run this after acquiring users
 </script>
+
+<script>
+//reassign Case to selected editor
+
+function assign_case(caseID){
+  var to = $(`#editor-${caseID}`).val();
+  post(`/api/v1/cases/assign/${caseID}`,{editor:to},function(d){console.log(d);});
+
+}
+
+</script>
+
+
 
 </body>
 </html>

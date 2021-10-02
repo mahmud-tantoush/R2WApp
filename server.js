@@ -2,10 +2,10 @@ const express = require('express');
 const path = require('path');
 const driver = require('./driver.js');
 let cors = require('cors');
+const fs = require('fs');
 
 /*
 /////// EC dev only
-const fs = require('fs');
 const https = require('https');
 // Certificate
 const privateKey = fs.readFileSync('/etc/letsencrypt/live/eric.myvnc.com/privkey.pem', 'utf8');
@@ -60,8 +60,9 @@ server.get('/', (req, res)=>{
 ///////////// view template
 server.set('view engine', 'ejs')
 
-server.get(`/index`, (req, res) => {
 
+
+server.get(`/index2`, (req, res) => {
   res.render("index", { user: req.query }); //under views/index.ejs
 });
 
@@ -72,27 +73,74 @@ server.get(`/overview`, (req, res) => {
 server.get(`/view/case/:caseID`, (req, res)=> {
     if (req.query.role == 'ADMIN') //note: passing query string means that it can be inserted by user in the url bar, use with caution
     { 
-      res.render("case_admin", { caseID: req.params.caseID }); //under views/case_admin.ejs
+    
+      //load some presets from json files
+      let EventLabels = fs.readFileSync('./presets/EventLabels.json');
+    
+      res.render("case_admin", { 
+                                    'user': req.query.user,'role': req.query.role,
+                                    caseID: req.params.caseID , 
+                                    EventLabels:JSON.parse(EventLabels)
+                               }); //under views/case_admin.ejs
     }
     else if (req.query.role == 'EDITOR')
     {
-      res.render("case_editor", { caseID: req.params.caseID }); //under views/case_editor.ejs
+      //check db to see if the Case with caseID:req.params.caseID mathces with the editor name
+    
+        let session = driver.session()
+        //eg quey search param: http://localhost:5050/api/v1/getnodes?node=Case&limit=5
+        q = `MATCH (c:Case {caseID:"${req.params.caseID}",phsVolunteer:"${req.query.user}"}) RETURN toFloat(count(c))`
+        console.log(q)
+        session.run(q) 
+        .then(result => {
+          //console.log(result)
+          session.close();
+          
+          if (result.records[0]._fields[0] == 0){
+              //view only
+              //res.send({"todo":"view only"})
+              
+              res.render("case_viewer", {  'user': req.query.user,'role': req.query.role, caseID: req.params.caseID }); //under views/case_editor.ejs
+              
+          }
+          else{
+          //load some presets from json files
+          let EventLabels = fs.readFileSync('./presets/EventLabels.json');
+          let Wards = fs.readFileSync('./presets/Wards.json');
+
+          //console.log(JSON.stringify(JSON.parse(rawdata)))
+          res.render("case_editor", { 
+                                        'user': req.query.user,'role': req.query.role,
+                                        caseID: req.params.caseID, 
+                                        EventLabels:JSON.parse(EventLabels),
+                                        Wards:JSON.parse(Wards)
+                                    }); //under views/case_editor.ejs
+          }
+        })
+        .catch(error => {
+          session.close();
+          res.send(error)
+        })
+        
+
+              
+                                  
     }
-    else{
-      //res.send("Please login to proceed");
-      res.render("case_admin", { caseID: req.params.caseID }); //under views/case_admin.ejs
+    else{ 
+      res.send("Please login to proceed");
+      //res.render("case_admin", { caseID: req.params.caseID }); //under views/case_admin.ejs
     }
     //res.render('case', { 'caseID' : req.params.caseID }) //under views/case.ejs
 })
 
-server.get(`/user`, (req, res)=> {
+server.get(`/index`, (req, res)=> {
     if (req.query.role == 'ADMIN')
     { 
-      res.render("user_admin", { }); //under views/case_admin.ejs
+      res.render("user_admin",  { 'user': req.query.user,'role': req.query.role }); //under views/case_admin.ejs
     }
     else if (req.query.role == 'EDITOR')
     {
-      res.render("user_editor", {  }); //under views/case_editor.ejs
+      res.render("user_editor", { 'user': req.query.user,'role': req.query.role }); //under views/case_editor.ejs
     }
     else{
       res.send("Please login to proceed");
