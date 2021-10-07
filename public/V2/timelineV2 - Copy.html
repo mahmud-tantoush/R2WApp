@@ -72,6 +72,9 @@
   stroke-dasharray: 2, 5;
 }
 
+
+
+
 line.now{
 	stroke: #000;
 	stroke-width:1;
@@ -95,14 +98,9 @@ rect.completed{
   fill: #7d7a25 ;
   stroke: #fff;
 }
-rect.overdue{
-  fill: #f40 ;
-  opacity:0.5;
-  stroke: #fff;
-}
 rect.ongoing{
-  fill: #ffcc00 ;
-  stroke: #000;
+  fill: #ff9900 ;
+  stroke: #fff;
 }
 rect.planned, rect.template{
   fill: #fff ;
@@ -114,12 +112,12 @@ rect.template{
   stroke-dasharray: 5;
   opacity:0.5;
 }
-
-.error{
-  fill: #888 ;
+rect.error{
+  fill: #f00 ;
   stroke-dasharray: 5;
   opacity:0.5;
 }
+
 /* axis */
 .tick .day{
 	font-size:12pt;
@@ -736,30 +734,18 @@ function process_data(data){
         
         var status = "planned";
         //find ongoing
-        if (startdate > time_now){
-          status = "planned";
+        if (time_now-startdate > 0){
+             status = "ongoing";
         }
-        else if (enddate >= time_now && startdate >= 0){
-            status = "ongoing";
-        }
-        else if (enddate < time_now){
-             status = "overdue";
-        }
-        
         //find completed
         if ("Completed" in filtered_nodes[i].properties){
         
             if (filtered_nodes[i].properties.Completed == "true"){
-                status = "error";
+                status = "completed";
                 
-                //replace enddate wite eventCompletedDate
                 enddate_tmp = get_date_from_str(filtered_nodes[i].properties.eventCompletedDate)
                 if(enddate_tmp && enddate_tmp != "Invalid Date"){
                     enddate = enddate_tmp
-                    
-                    if (startdate < addDays(time_now,1) && enddate < addDays(time_now,1)){
-                      status = "completed";
-                    }
                 }
             }
         }
@@ -842,7 +828,7 @@ function parse_template_node(endnode,data,i){
     return next_potential_event
 }
 
-function add_from_template(data,templatecase){
+function add_from_template(data){
     /*
         caseID: templateA
         event Label: 
@@ -854,7 +840,7 @@ function add_from_template(data,templatecase){
         
     */
     var endnodes = find_end_nodes(data);
-    //var templatecase = "templateA";
+    var templatecase = "templateA";
     
     for (var i in endnodes){
         endnode = endnodes[i];
@@ -1045,9 +1031,29 @@ placeholder = {
                 "enddate": addDays(today,10),
                 "status":"template"
             }
+        },
+        {
+            "id":"X2",
+            "properties":{"Label":"Placeholder",
+                "eventStartDate":addDays(today,11),
+                "eventDueDate":addDays(today,15),
+                "Expected_Duration":4
+            },
+            "draw":
+            {
+                "startdate":addDays(today,11), 
+                "enddate":addDays(today,15),
+                "status":"template"
+            }
         }
         ],
         "edges":[
+            {"id":1,"startNodeId":"X1","endNodeId":"X2","type":"Action","properties":{},
+                "draw":
+                {
+                    "status":"template"
+                }
+            }
         ]
     }
 

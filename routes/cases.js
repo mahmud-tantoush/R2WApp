@@ -262,7 +262,7 @@ optional match (c)-[:HAS]->(e:Event)
 with distinct c, count(e) as total,					
 REDUCE(s = {completed:0.0, overdue:0.0, ongoing:0.0, error:0.0}, e IN collect(e) |					
 CASE					
-	WHEN 	e.Completed = "true"  AND e.eventCompletedDate <> "" AND (date(e.eventCompletedDate)  <= date()) AND duration.inDays(date(e.eventStartDate), date(e.eventCompletedDate)).days >= 0			
+	WHEN 	e.Completed = "true"  AND e.eventCompletedDate <> "" AND (date(e.eventCompletedDate) <= (date()+Duration({days: 1}))) AND duration.inDays(date(e.eventStartDate), date(e.eventCompletedDate)).days >= 0			
 		THEN 	{completed:s.completed+1, overdue:s.overdue, ongoing:s.ongoing, error:s.error}		
 		ELSE 			
 			CASE WHEN	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) <= date())	
@@ -343,7 +343,7 @@ optional match (c)-[:HAS]->(e:Event)
 with distinct c, count(e) as total,					
 REDUCE(s = {completed:0.0, overdue:0.0, ongoing:0.0, planned:0.0, error:0.0}, e IN collect(e) |					
 CASE					
-	WHEN 	e.Completed = "true"  AND e.eventCompletedDate <> "" AND (date(e.eventCompletedDate)  <= date()) AND duration.inDays(date(e.eventStartDate), date(e.eventCompletedDate)).days >= 0			
+	WHEN 	e.Completed = "true"  AND e.eventCompletedDate <> "" AND (date(e.eventCompletedDate)  <= (date()+Duration({days: 1}))) AND duration.inDays(date(e.eventStartDate), date(e.eventCompletedDate)).days >= 0			
 		THEN 	{completed:s.completed+1, overdue:s.overdue, ongoing:s.ongoing, planned:s.planned, error:s.error}		
 		ELSE 			
 			CASE WHEN	e.eventStartDate <> "" AND e.eventDueDate <> "" AND e.Completed <> "true" AND (date(e.eventDueDate) <= date())	
@@ -775,6 +775,8 @@ RETURN c;
 //post
 router.post(`/createcase`, (req, res)=>{
     //console.log('/api/v1/getcases link works')
+    console.log(req.query)
+    
     //var newCase = JSON.parse(JSON.stringify(req.body))
     var user = parseQuery(req.query.user); //adds the username as Case.phsVolunteer
     // and req.query.role
@@ -1242,6 +1244,234 @@ return distinct c as case,collect(e) as event,collect(r1) as has,collect(r2) as 
 })
 
 
+router.get(`/compareall/:caseID`, (req, res)=>{
+    const session = driver.session()
+    let caseID = req.params.caseID;
+    if (!caseID){
+      res.send({status:0})
+      return;
+    }
+    
+q = `
+CALL {	
+	MATCH (a:Case)-[:HAS]->(b:Event)
+	WHERE NOT (:Event)-[:NEXT]->(b)
+	AND NOT a.caseID STARTS WITH "template"
+	
+	CALL apoc.path.subgraphNodes(b, {relationshipFilter: "NEXT>", minLevel: 0, maxLevel: 100 })
+	yield node
+	with distinct a as case, collect(node.Label) as labels
+	
+	return distinct case.caseID as B, labels
+	
+}	
+CALL {	
+	MATCH (a:Case)-[:HAS]->(b:Event)
+	WHERE NOT (:Event)-[:NEXT]->(b)
+	AND a.caseID = "${req.params.caseID}"
+	
+	CALL apoc.path.subgraphNodes(b, {relationshipFilter: "NEXT>", minLevel: 0, maxLevel: 100 })
+	yield node
+	with distinct a as case, collect(node.Label) as labels
+	
+	return distinct case.caseID as A, labels as sourceLabels
+	
+}	
+	
+RETURN B as caseID, toFloat(size([n IN sourceLabels WHERE n IN labels])) as overlap , toFloat(eric.editdistance(sourceLabels,labels)) AS editdistance, toFloat(size(sourceLabels)) as max	
+order by editdistance	
+`;
+
+    session.run(q) 
+      .then(result => {
+        session.close();
+        //res.json(result.records)
+        DBlist = []
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+            }
+            //add post-process here -e.g. if it is an integer we can process it here  
+            DBlist.push(tmp)
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+        
+        
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+//find potentials Event nodes that can be forward (startdate later than Evt) /backward (startdate earlier than Evt) dependent on an Event but not already linked
+
+router.get(`/event/:eventID/pforward`, (req, res)=>{
+    const session = driver.session()
+    let eventID = req.params.eventID;
+    if (!eventID){
+      res.send({status:0})
+      return;
+    }
+q = `
+match (c:Case)-[:HAS]->(e:Event)-[:NEXT]->(e2:Event)
+where ID(e) = ${eventID}
+with c, e, collect(e2) as e2
+match (c)-[:HAS]->(event:Event)
+where event <> e AND NOT event IN e2 AND date(event.eventStartDate) >= date(e.eventStartDate)
+return distinct event
+`;
+    session.run(q) 
+      .then(result => {
+        session.close();
+        //res.json(result.records)
+        DBlist = []
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+            }
+            //add post-process here -e.g. if it is an integer we can process it here  
+            DBlist.push(tmp)
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+router.get(`/event/:eventID/pbackward`, (req, res)=>{
+    const session = driver.session()
+    let eventID = req.params.eventID;
+    if (!eventID){
+      res.send({status:0})
+      return;
+    }
+q = `
+match (c:Case)-[:HAS]->(e:Event)<-[:NEXT]-(e2:Event)
+where ID(e) = ${eventID}
+with c, e, collect(e2) as e2
+match (c)-[:HAS]->(event:Event)
+where event <> e AND NOT event IN e2 AND date(event.eventStartDate) < date(e.eventStartDate)
+return distinct event
+`;
+    session.run(q) 
+      .then(result => {
+        session.close();
+        //res.json(result.records)
+        DBlist = []
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+            }
+            //add post-process here -e.g. if it is an integer we can process it here  
+            DBlist.push(tmp)
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+//find Event nodes that are dependent on an Event
+router.get(`/event/:eventID/forward`, (req, res)=>{
+    const session = driver.session()
+    let eventID = req.params.eventID;
+    if (!eventID){
+      res.send({status:0})
+      return;
+    }
+q = `
+match (e:Event)-[:NEXT]->(event:Event)
+where ID(e) = ${eventID}
+return distinct event
+`;
+
+    session.run(q) 
+      .then(result => {
+        session.close();
+        //res.json(result.records)
+        DBlist = []
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+            }
+            //add post-process here -e.g. if it is an integer we can process it here  
+            DBlist.push(tmp)
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+
+
+router.get(`/event/:eventID/backward`, (req, res)=>{
+    const session = driver.session()
+    let eventID = req.params.eventID;
+    if (!eventID){
+      res.send({status:0})
+      return;
+    }
+q = `
+match (event:Event)-[:NEXT]->(e:Event)
+where ID(e) = ${eventID}
+return distinct event
+`;
+
+    session.run(q) 
+      .then(result => {
+        session.close();
+        //res.json(result.records)
+        DBlist = []
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+              tmp[record.keys[i]] = record._fields[i]
+            }
+            //add post-process here -e.g. if it is an integer we can process it here  
+            DBlist.push(tmp)
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
+})
+
+
+//TODO
 router.post(`/importjson/`, (req, res)=>{
     const session = driver.session()
 

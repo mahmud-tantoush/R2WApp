@@ -85,16 +85,15 @@ todo 1: dashboard showing summary of cases e.g. number of events recorded, curre
 todo 2: pagination (ways to navigate when there are more records) [CURRENT]
 todo 3: order by [CURRENT]
 todo 4: search - filter summary by keywords with wildcards* and fuzzy search~ [CURRENT]
-todo 5: additional reporting insights (e.g. compare with templateA)
-todo 6: rename "overview" as "dashboard"
+todo 5: additional reporting insights (e.g. compare with templateA) [CURRENT]
 
 User system integration:
-todo 1: Admin view - list Editors, approve (validate) Editor, reassign Case to an Editor
-todo 2: Editor view - list Cases for editing
+todo 1: Admin view - list Editors, approve (validate) Editor, reassign Case to an Editor [CURRENT]
+todo 2: Editor view - list Cases for editing [CURRENT]
 
 Documentation:
-todo 1: definition of "completed", "overdue", "ongoing" and "error"
-todo 2: measures and interpretations for Case comparisons
+todo 1: definition of "completed", "overdue", "ongoing" and "error" [TODO]
+todo 2: measures and interpretations for Case comparisons [CURRENT]
         </pre>
     </div>
     
@@ -192,19 +191,53 @@ todo 2: measures and interpretations for Case comparisons
         <div id="cases_status">&nbsp;</div>
         <div id="cases_pagination"></div>
 
+        <p>
+        Key:<br>
+        
+        <div class="keys">
+        <span class="legend completed">Completed</span> - Events <b>marked as completed with completed date</b><br>
+        <span class="legend overdue">Overdue</span> - Events not marked as completed, with both the <b>start date and due date in the past</b>.<br>
+        <span class="legend ongoing">Ongoing</span> - Events not marked as completed, the start date earlier than today, the <b>due date in the future</b>.<br>
+        <span class="legend planned">Planned</span> - Events not marked as completed, with both the <b>start date and due date in the future</b>.<br>
+        <span class="legend error">Error</span> - Events with dates that cannot be resolved - e.g. Events marked as completed but missing a completed date or in the future, a completed date  earlier than the start date.
+
+        </div>
     </div>
+</div>
     
-    
-    <div class="panel" id="case_comparison">
-        <h2>Metrics (WIP)</h2>
+    <div id="case_comparison" style="width:100%" class="panel" >
+      
+        <div class="paper" >
+          
+          <h2>Metrics (WIP)</h2>
+          
+          
+          <h3>1. How long does it take for an "Event" (e.g. Awareness) to be completed, looking at the whole set of data?</h3>
+          
+        </div>
         
         
-        <h3>1. How long does it take for an "Event" (e.g. Awareness) to be completed, looking at the whole set of data?</h3>
+        <div style="width:100%" >
         <div id="boxplot"></div>
+        <button onclick="load_boxplot()">reload</button>
+        </div>
+        
+         <div class="paper" >
+      
+        <p>
+        
 Above: boxplot (<a href="https://www.khanacademy.org/math/statistics-probability/summarizing-quantitative-data/box-whisker-plots/a/box-plot-review" target="_blank">see explanation here</a>) of the duration (from Event start date to completed date) per completed Event across the whole dataset, ordered by the median duration from highest towards the left to lowest towards the right. 
         <p> 
 Note: will sort out the size of chart and labels etc once we have the dynamic elements and what to aggregate and extract from the dataset for meaningful insights. Depends on what data is present in the system.
+       <p> 
+Todo: overlay a particular case to see how the duration compares with the rest
+<p> 
+Similar type of analysis:<br>
+1. take the completion date of an Event subtract the start date of the Case<br>
+2. the duration gap between the dependent Event to each Event
+
         <div id="boxplot_json" class="dev"></div>
+        
         
         <p>
         <h3>2. How does each Case (B) compare with templateA (A)?</h3>
@@ -223,7 +256,7 @@ Note: will sort out the size of chart and labels etc once we have the dynamic el
         Interpretation: the more overlap with templateA, the more progress has been made<br>
         Limitations: the order/sequence of events is not considered here
         <p>
-        Measure: Jaccard<br>
+        Potential measure: Jaccard<br>
         Method: The ratio between overlapped set of Events in B with set of Events in A and the total number of Events in A<br>
         Interpretation: the higher the measure, the more progress has been made with reference to A<br>
         Limitations: the order/sequence of events is not considered here
@@ -233,11 +266,35 @@ Note: will sort out the size of chart and labels etc once we have the dynamic el
         Measure: edit distance<br>
         Method: first convert the sequence of Events into a linear sequence, compute Levenshtein distance between two sequence based on the Labels of Events (e.g. "Awareness")<br>
         
-        Interpretation: a higher edit distance means B is less similar to A. When a Case are ongoing and at an early stage of the process, a high edit distance is expected, other measures is required to make sense of it. When a Case is near completion, the edit distance measure allows us to compare the process as recorded in B as compared to A which is assumed to be inputted as an ideal process.<br>
+        Interpretation: a higher edit distance means B is less similar to A. Note that when a Case is ongoing and at an early stage of the process, a high edit distance is expected, other measures is required to make sense of it. When a Case is near completion, the edit distance measure allows us to compare the process as recorded in B as compared to A which is assumed to be inputted as an ideal process.<br>
         Limitations: while there are algorithms to estimate an inexact graph edit distance which consider more of the network graph features, a basic exact edit distance approach is used here for simplicity and speed.
     
+        <p>
+        Example: compare all other Cases with templateA
+        <br>
+        <div id="comparison_metrics"></div>
+        <br>
+        Description: 
+        <br>
+        each Case is a row for all Cases apart from templateA (and other Cases named with prefix "template") in the system. 
+        <br>
+        Column "max" is the total number of Events in templateA for reference. 
+        <br>
+        "overlap" is the number of Events for the Case matching templateA. 
+        <br>
+        "editdistance" is the number of times we have to edit the Case to match with templateA. 
+        <br>
+        Cases without any Events on record are excluded from the comparison.
     
+    
+        <h4>How does the sequence of Events compare between A and B in terms of time difference?</h4>
+        Todo.
+        <br>
+        Require a few sample completed cases to develop and test.
+        
+        
     </div>
+</div>
 </div>
 <br><br>
 
@@ -261,11 +318,11 @@ function load_boxplot(){
 }
 load_boxplot()
 
-
+/*
 function logout(){
   get("/api/action/user/logout",function(d){ window.location.href='/' });
 }
-
+*/
 function new_case(){
   var url = `/api/v1/cases/createcase`;
   var id = $("#new_case #caseID").val();
@@ -531,7 +588,68 @@ function _show_cases_summary(data){
 //show_pagination();
 
 search();
+///////////////////////
 
+//get metrics
+
+function comparison_metrics(){
+  var url = `/api/v1/cases/compareall/templateA`;
+  jqxhr = get(url,_comparison_metrics);
+}
+
+comparison_metrics()
+function _comparison_metrics(data){
+  console.log(data);
+  //json out
+  var htmlStr = ""
+  $.each(data, function(i,d){
+    htmlStr += JSON.stringify(d);
+    htmlStr += "<br>";
+  });
+  $("#cases_debug").html(htmlStr);
+  
+  //table
+  
+  
+  if (data.length){
+    var tableStr = "<div class='stats'><table>"
+    //get header assume keys for one applies to the rest
+    var header = Object.keys(data[0]);
+    tableStr += "<tr>";
+    $.each(header, function(i,d){
+      tableStr += "<th>";
+      tableStr += d;
+      //tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"> ⏷</span>`; //need some thoughts on this one
+      tableStr += ` <span onclick="state.order='${d}';state.order='${d}';show_cases_summary(0)" class="sortBtn"><img src="/V2/images/down.png" width="20" align="top"></span>`; //need some thoughts on this one
+      tableStr += "</th>";
+    });
+    tableStr += "</tr>";
+    
+    $.each(data, function(i,d){
+      tableStr += "<tr>";
+      $.each(d, function(key,val){
+        tableStr += "<td>";
+        
+        if (key == "caseID"){
+          tableStr += `<a href="/view/case/${val}">${val}</a>`
+        }else{
+          tableStr += `${val}`
+        }
+         tableStr += "</td>";
+      });
+      tableStr += "</tr>";
+    });
+
+    tableStr += "</table>";
+    tableStr += "</div>";
+
+    $("#comparison_metrics").html(tableStr);
+  }else{
+    $("#comparison_metrics").html("no records");
+  }
+  
+  
+}
 </script>
 
 

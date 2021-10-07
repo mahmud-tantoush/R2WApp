@@ -32,6 +32,54 @@ a:hover{ color:gold}
 
 .hidden {display:none}
 
+.flexcontainer{
+    width:100%;
+    display:flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    column-gap: 30px;
+    border: 0px solid blue;
+    margin: 0 auto;
+}
+
+.flexitem{
+  display:flex;
+  flex-direction: column;
+  border:0px solid blue;
+}
+
+/*------WIP--------*/
+.depends{
+  width:200px;
+  padding: 20px;
+  margin: 20px 0;
+  background:#efefef88;
+  border-radius:15px;
+}
+
+.depends button{
+  width:130px;
+  font-size:0.8rem;
+  margin:5px 0;
+  border-radius:10px;
+  border:0px solid blue;
+}
+
+.depends button.delBtn{
+  width:15px;
+  height:15px;
+  margin:0;
+  padding:0;
+}
+
+.depends select{
+  width:90%;
+  font-size:0.8rem;
+}
+
+/*------WIP--------*/
 
 .paper{
     width:80%;
@@ -254,7 +302,7 @@ div[class^="mobile-"]{
 */
 
 
-@media only screen and (min-width: 600px) {
+@media only screen and (min-width: 500px) {
   .mobile-nav{
     overflow: hidden;
     position: fixed;
@@ -266,7 +314,7 @@ div[class^="mobile-"]{
   }
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 500px) {
     div[class^="mobile-"]{
         display:inline-block;
         width:100vw;
@@ -291,8 +339,8 @@ div[class^="mobile-"]{
 
 .block{
   display:none;
-  width:100vw;
-  height:100vh;
+  width:100%;
+  height:100%;
   position: fixed;
   top: 0;
   left: 0;
@@ -309,7 +357,7 @@ div[class^="mobile-"]{
 /* Style navigation menu links */
 .mobile-nav a {
   color: #fff;
-  padding: 20px;
+  padding: 16px;
   text-decoration: none;
   font-size: 1rem;
   display: block;
@@ -370,3 +418,45 @@ div[class^="mobile-"]{
       background:inherit;
     }
 }
+
+/*---------- MOBILE menu end-------------*/
+
+.keys{
+  line-height:2.5rem;
+}
+.legend{
+  margin:5px;
+  padding:5px;
+  border-radius:5px;
+}
+
+.completed{
+  background : #7d7a25bb ;
+  color : #fff ;
+}
+.overdue{
+  background : #ff440088 ;
+  color : #000 ;
+}
+.ongoing{
+  background : #ffcc00 ;
+  color : #000 ;
+  border: 1px solid #000;
+}
+.planned{
+  border: 1px solid #000 !important;
+}
+
+.planned, span.template{
+  background: #ffffff88 ;
+  color: #000;
+}
+
+.template{
+  border: 2px dashed #000;
+}
+
+.error{
+  background: #88888888 ;
+}
+

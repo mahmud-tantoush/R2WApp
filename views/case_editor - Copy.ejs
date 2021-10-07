@@ -113,10 +113,8 @@
 <div class="panel_wide" id="case_event_page">
   <div class="paper" style="clear:both;">
       <h2>Case events</h2>
-      
-          Current guiding template for next Event suggestion: <select id="template-select">
-          <option value="templateA">templateA</option> 
-        </select> 
+      <select id="template-select">
+      <option value="templateA">templateA</option> 
       </select>
   </div>
 
@@ -362,9 +360,6 @@ function item_clicked(d){
     //////////////////////////////////////
     scrollTo("#event");
     setPage("#manager_evt");
-    //////////////////////////////////////
-    //list dependencies
-    getDependencies(eventID)
     
     init_auto_complete();
 }
@@ -456,17 +451,8 @@ function update_event_record(){
 </script>
 
 
-<div class="flexcontainer">
 
-<div class="flexitem depends">
-    <h5>Directly depends on &lt;</h5>
-    <div id="previous">
-
-    </div>
-</div>
-
-
-<div class="flexitem" id="manage_evt" style="width:80%;max-width:1280px">              
+<div class="paper" id="manage_evt">
     <h2 id="event">Manage event</h2>
     <div id="manage_event" class="FForm">Select an item in the timeline to add or edit</div>
     <div class="manage_event_btn" style="display:none;text-align:right">
@@ -490,124 +476,6 @@ function update_event_record(){
 </div>
 
     
-
-<script>
-//list backward and forward item
-
-function getDependencies(eventid){
-    get(`/api/v1/cases/event/${eventid}/forward`,function(d){
-        console.log("foward")
-        console.log(d)
-        
-        get(`/api/v1/cases/event/${eventid}/pforward`,function(d2){
-            list_nodes("next", d, d2)
-        })
-
-
-
-    })
-    
-    get(`/api/v1/cases/event/${eventid}/backward`,function(d){
-        console.log("back")
-        console.log(d)
-        
-        get(`/api/v1/cases/event/${eventid}/pbackward`,function(d2){
-            list_nodes("previous", d, d2)
-        })
-    })
-}
-function list_nodes(domid, data, potentials){
-    var htmlStr = "";
-    
-    if (!isNaN(eventID)){
-        for (var i in data){
-            var eid = toNumber(data[i]['event']['identity']);
-            var elabel = data[i]['event']['properties']['Label'];
-            
-            //var d = _.find(ctl.data.nodes, {id:eid});
-            //htmlStr += `<button onclick="depend_item_clicked(${eid})" class="${d.draw.status}">`;
-            
-            htmlStr += `<button onclick="depend_item_clicked(${eid})">`;
-            //item_clicked(d)
-            htmlStr += elabel;
-            htmlStr += "</button>";
-            htmlStr += ` <button onclick="alert('Todo: remove link')" class="delBtn">X</button>`;
-            htmlStr += "<br>";
-        }
-        
-        if (potentials.length){
-            console.log(potentials);
-            htmlStr += "<br>potential +<br>";
-            htmlStr += `<select id="${domid}pos" onchange="select_add_link('${domid}')">`;
-            htmlStr += `<option value="default">${potentials.length} event(s)</option>`;
-            for (var i in potentials){
-                var eid = toNumber(potentials[i]['event']['identity']);
-                var elabel = potentials[i]['event']['properties']['Label'];
-                htmlStr += `<option value="${eid}">${elabel}</option>`;
-            }
-            htmlStr += "</select>";
-
-        }
-    }
-    
-    if (!htmlStr){
-        htmlStr = "None on record"
-    }   
-    $("#"+domid).html(htmlStr);
-}
-function depend_item_clicked(id){
-   var d = _.find(ctl.data.nodes, {id:id});
-   item_clicked(d);
-}
-function select_add_link(domid){
-    console.log("select_add_link");
-
-    var id = $("#"+domid+"pos").val();
-    
-    if (id == "default"){
-        return;
-    }
-    console.log(id);
-    console.log(domid+"pos");
-    console.log($("#"+domid+"pos"));
-    console.log($("#"+domid+"pos").val());
-    
-    if (id && eventID){
-        var sourceid = id;
-        var targetid = eventID;
-        if (domid == "next"){
-            sourceid = eventID;
-            targetid = id;
-        }
-        get(`/api/v1/cases/eventevent/${sourceid}/${targetid}`,function(d){
-            if (d.length){
-                $("#prompt").html("link created");
-            }else{
-                $("#prompt").html("link error");
-            }
-            get_timeline_data(1);
-            
-            if (!isNaN(eventID)){
-                getDependencies(eventID);
-            }else{
-                list_nodes("next", [], [])
-                list_nodes("previous", [], [])
-            }
-        })
-    }
-}
-
-
-</script>
-
-<div class="flexitem depends">
-    <h5>&gt; Directly enables</h5>
-    <div id="next">
-
-    </div>
-</div>
-
-</div>
     
 <br>
 <br>

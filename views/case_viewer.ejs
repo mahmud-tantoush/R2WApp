@@ -204,12 +204,14 @@ function get_timeline_data(update){
             }
         }else{
             //nothing found in the case itself, prompt user 
-            tmpnodes = [ctl.data.nodes[0]];
-            ctl.data.nodes = tmpnodes;
-            ctl.data.nodes[0].properties.Label = "Placeholder: Click to add an event"
-            ctl.data.nodes[0].draw.status = "template"
+            console.log("no events")
+            //tmpnodes = [ctl.data.nodes[0]];
+            ctl.data.nodes = [];
+            //ctl.data.nodes[0].properties.Label = "Placeholder: Click to add an event"
+            //ctl.data.nodes[0].draw.status = "template"
             ctl.data.edges = []
             ctl.update();
+            
         }
     });
 }

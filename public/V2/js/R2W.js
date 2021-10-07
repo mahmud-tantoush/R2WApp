@@ -147,10 +147,16 @@ function promise_post(url,data,result_function){
   })
 }
 //////////////////////////////////////
+//general utility: converts identity to number in javascript
+function toNumber({ low, high }) {
+    let res = high
+    for (let i = 0; i < 32; i++) {
+      res *= 2
+    }
+    return low + res
+}
 
-
-
-
+//////////////////////////////////////
 
 function makeform(jsonobj,config){
     //jsonobj - single level {key:value}
@@ -387,7 +393,7 @@ function setPage(hash){
 }
 function setView(){
 
-  if($(window).width() > 600){
+  if($(window).width() > 500){
      $(".panel").show();
      $("#myLinks").hide();
      $(".block").hide();
