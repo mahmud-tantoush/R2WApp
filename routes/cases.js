@@ -242,7 +242,7 @@ router.get(`/getcases/summary/:Page/:Order`, (req, res)=>{
       res.json({error:1});
       return;
     }
-    
+    let skip = 0;if (page > 0){skip = 10*page-1;}
     
     let orderbycypher = "order by total desc";
     console.log(req.body)
@@ -276,7 +276,7 @@ CASE
 		END) AS status	
 return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.error as error,toFloat(total) as total,c.phsVolunteer as user
 ${orderbycypher}	
-skip ${10*page}
+skip ${skip}
 limit 10			
 `
 //console.log(q)
@@ -324,6 +324,7 @@ router.post(`/getcases/summary/:Page/:Order`, (req, res)=>{
       res.json({error:1});
       return;
     }
+    let skip = 0;if (page > 0){skip = 10*page-1;}
     
     let orderbycypher = "order by total desc";
     console.log(req.body)
@@ -361,7 +362,7 @@ CASE
 		END) AS status	
 return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.planned as planned,status.error as error,toFloat(total) as total,c.phsVolunteer as editor
 ${orderbycypher}	
-skip ${10*page}
+skip ${skip}
 limit 10			
 `
 //console.log(q)
@@ -409,6 +410,7 @@ router.post(`/getcases/summary/:Page/:Order/:User`, (req, res)=>{
       res.json({error:1});
       return;
     }
+    let skip = 0;if (page > 0){skip = 10*page-1;}
     
     let orderbycypher = "order by total desc";
     console.log(req.body)
@@ -446,7 +448,7 @@ CASE
 		END) AS status	
 return c.caseID as caseID,status.completed as completed,status.overdue as overdue,status.ongoing as ongoing,status.planned as planned,status.error as error,toFloat(total) as total
 ${orderbycypher}	
-skip ${10*page}
+skip ${skip}
 limit 10			
 	
 `
@@ -993,10 +995,8 @@ router.post(`/getnextevent/:caseID`, (req, res)=>{
     
     session.run(q) 
       .then(result => {
-          
-          
-        console.log("HERE")
-        console.log(result.records)
+        //console.log("HERE")
+        //console.log(result.records)
         
         session.close();
         //res.json(result.records)
@@ -1319,8 +1319,9 @@ router.get(`/event/:eventID/pforward`, (req, res)=>{
       return;
     }
 q = `
-match (c:Case)-[:HAS]->(e:Event)-[:NEXT]->(e2:Event)
+match (c:Case)-[:HAS]->(e:Event)
 where ID(e) = ${eventID}
+optional match (e)-[:NEXT]->(e2:Event)
 with c, e, collect(e2) as e2
 match (c)-[:HAS]->(event:Event)
 where event <> e AND NOT event IN e2 AND date(event.eventStartDate) >= date(e.eventStartDate)
@@ -1359,8 +1360,9 @@ router.get(`/event/:eventID/pbackward`, (req, res)=>{
       return;
     }
 q = `
-match (c:Case)-[:HAS]->(e:Event)<-[:NEXT]-(e2:Event)
+match (c:Case)-[:HAS]->(e:Event)
 where ID(e) = ${eventID}
+optional match (e)<-[:NEXT]-(e2:Event)
 with c, e, collect(e2) as e2
 match (c)-[:HAS]->(event:Event)
 where event <> e AND NOT event IN e2 AND date(event.eventStartDate) < date(e.eventStartDate)
@@ -1550,6 +1552,47 @@ router.get(`/testbody`, (req, res)=>{
     
     res.json(req.query)
 
+})
+
+
+
+//get a list of template Case
+
+router.get(`/templates`, (req, res)=>{
+    const session = driver.session()
+
+q = `
+MATCH (c:Case)
+WHERE c.caseID  STARTS WITH "template"
+return distinct c.caseID as caseID
+`;
+
+    session.run(q) 
+      .then(result => {
+        session.close();
+        //res.json(result.records)
+        
+        
+        DBlist = []
+        //return records as List[{key:values,key:values}] where key is the name of variable from query
+        result.records.forEach(function(record){
+            //console.log(record._fields[0])
+            let tmp ={}
+            for (var i =0; i < record.length; i++){
+               tmp[record.keys[i]] = record._fields[i]
+
+            }
+            //add post-process here -e.g. if it is an integer we can process it here  
+            DBlist.push(tmp)
+        })
+        //res.json(result.records)
+        res.json(DBlist)
+      })
+      .catch(error => {
+        session.close();
+        error["status"] = 0;
+        res.send(error)
+      })
 })
 
 

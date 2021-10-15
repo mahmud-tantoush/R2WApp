@@ -414,6 +414,7 @@ function show_cases_summary(page){
 
   state.page = page;
   var url = `/api/v1/cases/getcases/summary/${state.page}/${state.order}`;
+  console.log(url)
   jqxhr = post(url,{q:$("#q").val()},_show_cases_summary);
 }
 function show_pagination(){

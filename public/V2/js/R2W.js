@@ -132,12 +132,13 @@ function promise_post(url,data,result_function){
             dataType: "json",
             success: function (data) {
                 resolve(data)
+                /*
                 if (result_function){
                     result_function(data);
                 }
                 else{
                     inspectJSON(data)
-                }
+                }*/
             },
             error: function (error) {
                 reject(error)
@@ -158,9 +159,13 @@ function toNumber({ low, high }) {
 
 //////////////////////////////////////
 
-function makeform(jsonobj,config){
+function makeform(jsonobj,config,prefix){
     //jsonobj - single level {key:value}
     //config - [{key,label,type]
+    
+    if (!prefix){
+      prefix = "";
+    }
     
     var htmlStr = "";
     htmlStr += "<fieldset><ol>";
@@ -182,7 +187,7 @@ function makeform(jsonobj,config){
                 }
                 
                 htmlStr += `<li class="row-${item.key}">`;
-                htmlStr += `<label class="FLabel" for="${item.key}">${item.label}</label>`;
+                htmlStr += `<label class="FLabel" for="${prefix}${item.key}">${item.label}</label>`;
                 
                 //htmlStr += value;
                 if (item.type == "date"){
@@ -195,7 +200,7 @@ function makeform(jsonobj,config){
                     }catch(e){
                         dateStr = ""
                     }
-                    htmlStr += `<input id="${item.key}" type="date" name="${item.key}" ${dateStr} class="editor">`;
+                    htmlStr += `<input id="${item.key}" type="date" format="yyyy-mm-dd" name="${item.key}" ${dateStr} class="editor">`;
                 }
                 else if (item.type == 'number'){
                      htmlStr += `<input id="${item.key}" type="number" name="${item.key}" value="${value}" class="editor">`;
@@ -207,8 +212,8 @@ function makeform(jsonobj,config){
                      htmlStr += `<select id="${item.key}" name="${item.key}" class="editor"><option value="true" ${isTrue}>YES</option><option value="false" ${isFalse}>NO</option></select>`;*/
                      var checked = "";
                      if (value == 'true'){ checked = " checked";}
-                    htmlStr += `<input type="checkbox" id="${item.key}" name="${item.key}" class="editor checkbox" ${checked}>`
-                    htmlStr += `<label for="${item.key}"></label>`
+                    htmlStr += `<input type="checkbox" id="${prefix}${item.key}" name="${item.key}" class="editor checkbox" ${checked}>`
+                    htmlStr += `<label for="${prefix}${item.key}"></label>`
                 }
                 else if (item.type == 'textarea'){
                      htmlStr += `<textarea id="${item.key}" name="${item.key}" class="editor" ${placeholder}>${value}</textarea>`;
@@ -227,7 +232,7 @@ function makeform(jsonobj,config){
                   
                   for (var ii in item.candidate){
                     var selected = ""
-                    if (item.candidate[ii] == value){
+                    if (item.candidate[ii].trim() == value.trim()){
                       selected = "selected"
                     }
                     htmlStr += `<option value="${item.candidate[ii]}" ${selected}>${item.candidate[ii]}</option>`;

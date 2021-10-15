@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>R2W case: <%= caseID; %></title>
 <!-- <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"> -->
 <link rel="stylesheet" href="/V2/css/jquery-ui.min.css">
 <link rel="stylesheet" href="/V2/css/styles.css">
+<link rel="stylesheet" href="/V2/css/select2.min.css">
 <style>
   .ui-autocomplete {
       max-height: 200px;
@@ -43,6 +44,7 @@
 <script src="/V2/js/R2W.js"></script>
 <!-- <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script> -->
 <script src="/V2/js/jquery-ui.min.js"></script>
+<script src="/V2/js/select2.min.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
@@ -90,9 +92,9 @@
   <b><%= user; %></b> logged in as <b><%= role; %></b>
   <p>
   todo:
-  <li>check if this case is assigned to the current user [WIP]</li>
+  <li>check if this case is assigned to the current user [done]</li>
   <li>if yes: then allow edit</li>
-  <li>else: view only</li>
+  <li>else: view only [via overview]</li>
   <li>constrain fields with selected inputs [done, need to add admin edit]</li>
 </div>
 
@@ -114,13 +116,15 @@
   <div class="paper" style="clear:both;">
       <h2>Case events</h2>
       
+      <!--
           Current guiding template for next Event suggestion: <select id="template-select">
           <option value="templateA">templateA</option> 
         </select> 
       </select>
+      -->
   </div>
 
-  <div id="case_events" style="width:100vw">
+  <div id="case_events" style="width:100%">
     <div class="paper">Initialising timeline...</div>
   </div>
 
@@ -160,6 +164,7 @@ function get_case_by_id(){
         {key:"secretary",label:"Secretary",type:"text",placeholder:"Internal identifier"},
         //{key:"secretary_number",label:"Number",type:"number",placeholder:""},
         {key:"Location",label:"Ward name",type:"select",candidate:<%- JSON.stringify(Wards) %>,placeholder:"Ward name"},
+        {key:"Template",label:"Guide Template",type:"select",candidate:<%- JSON.stringify(Template) %>,placeholder:"guiding template for next Event suggestion"},
         {key:"link",label:"Link to files",type:"link",placeholder:"Link to files and documents"},
         {key:"notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"},
         //{key:"dateLogged",label:"dateLogged",type:"hidden"},
@@ -168,8 +173,17 @@ function get_case_by_id(){
     
     $(".submit_container").show();
     $("#case_attributes_debug").html(JSON.stringify(data));
+    
+    
+    ///////////////
+      $("#case_attributes #Template").on('change', function(d){
+          get_timeline_data(0); //timeline change
+          
+      })
+    /////////////
   });
 }
+
 function get_case_event(){
   var url = `/api/v1/cases/getcaseeventV2/<%= caseID; %>`;
   jqxhr = get(url, function (data) {
@@ -210,21 +224,25 @@ function load_timeline(){
         success: function(data) {
             $("#case_events").html(data);
             
-            get_timeline_data(0)
+            $("#case_events").ready(function(d){
+                get_timeline_data(0)
+            });
         }
     });
 }
 function get_timeline_data(update){
-    var url = `/api/v1/cases/getcaseevent/<%= caseID; %>`;
+    var url = `/api/v1/cases/getcaseeventV2/<%= caseID; %>`;
     jqxhr = get(url, function (data) {
         tmp = process_data(data);
         if (tmp.nodes.length > 0){
             ctl.data = tmp;
             
-            add_from_template(ctl.data,$("#template-select").val()); //experimental add templated nodes 
-            ctl.update();
+            //add_from_template(ctl.data,$("#template-select").val()); //experimental add templated nodes 
+            add_from_template(ctl.data,$("#Template").val()); //experimental add templated nodes 
+            
+            //ctl.update();
+            
             if(!update){
-
                 ctl.view_extent();
             }
         }else{
@@ -238,6 +256,9 @@ function get_timeline_data(update){
         }
     });
 }
+
+
+
 
 // on load
 check_case_exist();
@@ -278,95 +299,124 @@ function item_clicked(d){
         return false;
     }
     
+    // experimental
+    ctl.zoom_to_item(d.id);
     
-    eventID = d.id;
-    $("#update_event_status").html("");
+    ///
+
     
-    var data = d.properties;
-    var manage_form = makeform(data,[
-        {key:"Label",label:"Label",type:"select",candidate:availableTags},
-        {key:"Completed",label:"Completed",type:"boolean"},
-        {key:"eventStartDate",label:"Start date",type:"date"},
-        {key:"eventDueDate",label:"Due date",type:"date"},
-        {key:"eventCompletedDate",label:"Completed date",type:"date"},
-        {key:"Expected_Duration",label:"Expected duration",type:"number"},
-        {key:"Notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"}
-    ])
-    $("#manage_event").html(manage_form);
-    
-    $(".manage_event_btn").show()
-    
-    
-    if (d.draw.status == "template"){
-        $("#btn_del").hide()
-        $("#btn_link").hide()
-    }else{
-        $("#btn_del").show()
-        $("#btn_link").show()
-    }
-    //////////////////////////////////////
-    //set visibility based on content in client
-    //var completed = $("#manage_event #Completed").val();
-    function completed_change(){
-        var completed = $("#manage_event #Completed").is(":checked");
-        if (!completed){
-             $("#manage_event .row-eventDueDate").show();
-             $("#manage_event .row-Expected_Duration").show();
-             $("#manage_event .row-eventCompletedDate").hide();
-        }else{
-             $("#manage_event .row-eventDueDate").hide();
-             $("#manage_event .row-Expected_Duration").hide();
-             $("#manage_event .row-eventCompletedDate").show();
-        }
-    }
-    completed_change();
-    $("#manage_event #Completed").on('change', function(d){
-        completed_change();
-    })
-    //update due date if expected duration changes
-    function modify_due_date(){
-        newdate = addDays(get_date_from_str($("#manage_event #eventStartDate").val()), Number($("#manage_event #Expected_Duration").val()))
-         $("#manage_event #eventDueDate").val(formatDate(newdate))
-    }
-    $("#manage_event #Expected_Duration").on('change', function(d){
-        modify_due_date()
-        
-    })
-    
-    //check if completed date or due date is later than start date
-    function check_completed_date(){
-        var startdate = get_date_from_str($("#manage_event #eventStartDate").val())
-        var completedate = get_date_from_str($("#manage_event #eventCompletedDate").val())
-        if (completedate < startdate){
-            completedate = startdate;
-        }
-        $("#manage_event #eventCompletedDate").val(formatDate(completedate))
-    }
-    $("#manage_event #eventCompletedDate").on('change', function(d){
-        check_completed_date()
-    })
-    
-    //update expected duration when due date changes
-    function modify_expected_duration(){
-        days = (get_date_from_str($("#manage_event #eventDueDate").val())-get_date_from_str($("#manage_event  #eventStartDate").val()))/86400000
-         $("#manage_event #Expected_Duration").val(days);
-    }
-    $("#manage_event #eventDueDate").on('change', function(d){
-        modify_expected_duration()
-    })
-    //update due date if startdate changes, based on expected duration
-    $("#manage_event #eventStartDate").on('change', function(d){
-        modify_due_date()
-    })
-    
-    //////////////////////////////////////
-    scrollTo("#event");
-    setPage("#manager_evt");
-    //////////////////////////////////////
-    //list dependencies
-    getDependencies(eventID)
-    
-    init_auto_complete();
+    if (!isNaN(d.id)){
+
+      eventID = d.id;
+      $("#update_event_status").html("");
+      
+      var data = d.properties;
+      var manage_form = makeform(data,[
+          {key:"Label",label:"Label",type:"select",candidate:availableTags},
+          {key:"Completed",label:"Completed",type:"boolean"},
+          {key:"eventStartDate",label:"Start date",type:"date"},
+          {key:"eventDueDate",label:"Due date",type:"date"},
+          {key:"eventCompletedDate",label:"Completed date",type:"date"},
+          {key:"Expected_Duration",label:"Expected duration",type:"number"},
+          {key:"Notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"}
+      ])
+      $("#manage_event").html(manage_form);
+      
+      $(".manage_event_btn").show()
+      
+      
+      if (d.draw.status == "template"){
+          $("#btn_del").hide()
+          $("#btn_link").hide()
+      }else{
+          $("#btn_del").show()
+          $("#btn_link").show()
+      }
+      //////////////////////////////////////
+      //set visibility based on content in client
+      //var completed = $("#manage_event #Completed").val();
+      function completed_change(){
+          var completed = $("#manage_event #Completed").is(":checked");
+          if (!completed){
+               $("#manage_event .row-eventDueDate").show();
+               $("#manage_event .row-Expected_Duration").show();
+               $("#manage_event .row-eventCompletedDate").hide();
+          }else{
+               $("#manage_event .row-eventDueDate").hide();
+               $("#manage_event .row-Expected_Duration").hide();
+               $("#manage_event .row-eventCompletedDate").show();
+               
+               //add the due date as completed date as a start
+               
+               var duedate = $("#manage_event #eventDueDate").val();
+               $("#manage_event #eventCompletedDate").val(duedate);
+          }
+      }
+      completed_change();
+      $("#manage_event #Completed").on('change', function(d){
+          completed_change();
+      })
+      //update due date if expected duration changes
+      function modify_due_date(){
+          newdate = addDays(get_date_from_str($("#manage_event #eventStartDate").val()), Number($("#manage_event #Expected_Duration").val()))
+           $("#manage_event #eventDueDate").val(formatDate(newdate))
+      }
+      $("#manage_event #Expected_Duration").on('change', function(d){
+          modify_due_date()
+          
+      })
+      
+      //check if completed date or due date is later than start date
+      function check_completed_date(){
+          var startdate = get_date_from_str($("#manage_event #eventStartDate").val())
+          var completedate = get_date_from_str($("#manage_event #eventCompletedDate").val())
+          if (completedate < startdate){
+              completedate = startdate;
+          }
+          $("#manage_event #eventCompletedDate").val(formatDate(completedate))
+      }
+      //$("#manage_event #eventCompletedDate").on('change', function(d){
+          //check_completed_date()
+      //})
+      
+      //update expected duration when due date changes
+      function modify_expected_duration(){
+          days = (get_date_from_str($("#manage_event #eventDueDate").val())-get_date_from_str($("#manage_event  #eventStartDate").val()))/86400000
+           $("#manage_event #Expected_Duration").val(days);
+      }
+      $("#manage_event #eventDueDate").on('change', function(d){
+          modify_expected_duration()
+      })
+      //update due date if startdate changes, based on expected duration
+      $("#manage_event #eventStartDate").on('change', function(d){
+          modify_due_date()
+      })
+      
+
+      //list dependencies
+      getDependencies(eventID)
+      
+      ////////////////////////
+      $("#add_event_container").hide()
+      $("#edit_event_container").show()
+      
+      //////////////////////////////////////
+      scrollTo("#edit_event_title");
+      setPage("#manager_evt");
+      //////////////////////////////////////
+      //$('#manage_event #Label').css("width", '80%');
+      
+      $("#manage_event").ready(function() {
+            $('#manage_event #Label').select2({
+                width: '80%'
+            });
+        });
+      //init_auto_complete();
+   }else{
+      add_new_event(d);
+   
+   
+   }
 }
 /*
 var availableTags = [
@@ -409,6 +459,7 @@ function update_event_record(){
             }
         }
         else{
+            /*
             //in timeline the eventID for placeholder are string e.g. X1, X2
             //here we will use the form to add a new event
             console.log("add event")
@@ -442,84 +493,298 @@ function update_event_record(){
                         $("#update_event_status").html("error");
                     }
                 })
-                
-                
-                
+
             }
+            */
         }
     }
     
 }
+function add_event_record(){
 
+    console.log("add event")
+    inputs = parseform("#add_event .editor");
+    if (inputs.status){
+    
+        //Note: this adds the new event only, does not deal with Event-Event connection
+        //POST api/v1/cases/linkevents {startNodeId,endNodeId}
+        
+        $("#add_event_status").html("adding");
+        
+        //find previous id
+        inEdges = _.filter(ctl.data.edges, {endNodeId:eventID})
+        var prevID = "";
+        if (inEdges.length){
+            prevEventId = inEdges[0].startNodeId
+            if (!isNaN(prevEventId)){
+                prevID = "/"+prevEventId
+            }
+        }
+        xhr = post('/api/v1/cases/addevent/<%= caseID; %>'+prevID,inputs.param,function(d){
+            console.log(d);
+            if ("status" in d){
+                if(d.status){
+                    $("#update_event_status").html(`updated`);
+                    get_timeline_data(1); //update ctl
+                    
+                    $("#add_event").html("");
+                    //$(".add_event_btn").hide();
+                    $("#add_event_container").hide();
+                    
+                }
+            }else{
+                $("#add_event_status").html("error");
+            }
+        })
 
+    }
+
+}
 
 </script>
 
 
-<div class="flexcontainer">
+<script>
+function add_new_event_str(str){
+  try{
+    var d = JSON.parse(unescape(str));
+    add_new_event(d);
+    
+    ctl.zoom_to_item(d.id);
+    ctl.set_active(d.id);
+  }catch(e){
+    console.log(e)
+  }
+}
 
-<div class="flexitem depends">
-    <h5>Directly depends on &lt;</h5>
-    <div id="previous">
 
+function add_new_event(d){
+  var today = new Date();
+  today.setMinutes(0)
+  today.setHours(1)
+
+  if(!d){
+    d = { id: "new",
+          properties: {
+            eventStartDate: addDays(today,0),
+            eventDueDate:addDays(today,7),
+            Expected_Duration:7
+          }
+        }
+  }
+
+  eventID = d.id;
+  $("#add_event_status").html("");
+
+  var data = d.properties;
+  var manage_form = makeform(data,[
+    {key:"Label",label:"Label",type:"select",candidate:availableTags},
+    {key:"Completed",label:"Completed",type:"boolean"},
+    {key:"eventStartDate",label:"Start date",type:"date"},
+    {key:"eventDueDate",label:"Due date",type:"date"},
+    {key:"eventCompletedDate",label:"Completed date",type:"date"},
+    {key:"Expected_Duration",label:"Expected duration",type:"number"},
+    {key:"Notes",label:"Notes",type:"textarea",placeholder:"Write additional comments here"}
+  ],"newevent")
+  $("#add_event").html(manage_form);
+
+  $(".add_event_btn").show()
+
+
+    //////////////////////////////////////
+  //set visibility based on content in client
+  //var completed = $("#manage_event #Completed").val();
+  // note repeated from manage_event form, to be reviewed
+
+  function completed_change2(){
+      var completed = $("#add_event #neweventCompleted").is(":checked");
+      if (!completed){
+           $("#add_event .row-eventDueDate").show();
+           $("#add_event .row-Expected_Duration").show();
+           $("#add_event .row-eventCompletedDate").hide();
+      }else{
+           $("#add_event .row-eventDueDate").hide();
+           $("#add_event .row-Expected_Duration").hide();
+           $("#add_event .row-eventCompletedDate").show();
+           
+           //add the due date as completed date as a start
+           var duedate = $("#add_event #eventDueDate").val();
+           $("#add_event #eventCompletedDate").val(duedate);
+      }
+  }
+  completed_change2();
+  $("#add_event #neweventCompleted").on('change', function(d){
+      completed_change2();
+  })
+  //update due date if expected duration changes
+  function modify_due_date2(){
+      newdate = addDays(get_date_from_str($("#add_event #eventStartDate").val()), Number($("#add_event #Expected_Duration").val()))
+       $("#add_event #eventDueDate").val(formatDate(newdate))
+  }
+  $("#add_event #Expected_Duration").on('change', function(d){
+      modify_due_date2()
+      
+  })
+
+  //check if completed date or due date is later than start date
+  function check_completed_date(){
+      var startdate = get_date_from_str($("#manage_event #eventStartDate").val())
+      var completedate = get_date_from_str($("#manage_event #eventCompletedDate").val())
+      if (completedate < startdate){
+          completedate = startdate;
+      }
+      $("#add_event #eventCompletedDate").val(formatDate(completedate))
+  }
+  $("#add_event #eventCompletedDate").on('change', function(d){
+      //check_completed_date()
+  })
+
+  //update expected duration when due date changes
+  function modify_expected_duration2(){
+      days = (get_date_from_str($("#add_event #eventDueDate").val())-get_date_from_str($("#add_event  #eventStartDate").val()))/86400000
+       $("#add_event #Expected_Duration").val(days);
+  }
+  $("#add_event #eventDueDate").on('change', function(d){
+      modify_expected_duration2()
+  })
+  //update due date if startdate changes, based on expected duration
+  $("#add_event #eventStartDate").on('change', function(d){
+      modify_due_date2()
+  })
+  ////////////////////////
+  $("#add_event_container").show()
+  $("#edit_event_container").hide()
+  ////////////////////////
+  scrollTo("#add_event_title");
+  ////////////////////////
+  ctl.clear_active()
+  ///////////////////////////
+    $("#add_event").ready(function() {
+        $('#add_event #Label').select2({
+            width: '80%'
+        });
+    });
+}
+</script>
+
+
+
+    
+    
+  
+<div class="flexcontainer" id="edit_event_container" style="display:none">
+
+    <div class="flexitem depends">
+        <h5>Directly depends on &lt;</h5>
+        <div id="previous">
+        </div>
+    </div>
+
+    <div class="flexitem" id="manage_evt">   
+
+               
+        <h2 id="edit_event_title">Edit selected Event</h2>
+        <div id="manage_event" class="FForm">Select an item in the timeline to edit</div>
+        <div class="manage_event_btn" style="display:none;text-align:right">
+            <span id="update_event_status"></span>
+            <button id="btn_del" onclick="delete_event_record()">Delete Event</button>
+            <button onclick="update_event_record()">Update Event</button>
+        </div>
+        
+        
+        <div class="manage_event_btn" style="display:none">
+        <!--
+        experimental:<br>
+          <button id="btn_link" onclick="link_record_init()">Link from Event to another</button>
+          -->
+          <div id="prompt"></div>
+
+          <!--
+          to delete
+          del("/api/v1/cases/eventevent/SOURCE/TARGET",{},function(d){console.log(d)})
+          -->
+        </div>
+
+    </div>
+
+        <div class="flexitem depends">
+        <h5>&gt; Directly enables</h5>
+        <div id="next">
+
+        </div>
+    </div>
+
+</div>
+
+
+
+<div class="paper">
+
+  <button onclick="add_new_event()">Add a new Event</button><br>
+  or add a new event guided by template (dashed Event in timeline)
+  <div id="potential_add_from_template"></div>
+
+</div>
+
+
+<div class="paper" id="add_event_container" style="display:none">
+    <h2 id="add_event_title">Add Event</h2>
+    <div id="add_event" class="FForm"></div>
+    <div class="add_event_btn" style="display:none;text-align:right">
+        <span id="add_event_status"></span>
+        <button onclick="add_event_record()">Add Event</button>
     </div>
 </div>
 
 
-<div class="flexitem" id="manage_evt" style="width:80%;max-width:1280px">              
-    <h2 id="event">Manage event</h2>
-    <div id="manage_event" class="FForm">Select an item in the timeline to add or edit</div>
-    <div class="manage_event_btn" style="display:none;text-align:right">
-        <span id="update_event_status"></span>
-        <button id="btn_del" onclick="delete_event_record()">Delete Event</button>
-        <button onclick="update_event_record()">Update Event</button>
-    </div>
-    
-    
-    <div class="manage_event_btn" style="display:none">
-    experimental:<br>
-      <button id="btn_link" onclick="link_record_init()">Link from Event to another</button>
-      <div id="prompt"></div>
-
-      <!--
-      to delete
-      del("/api/v1/cases/eventevent/SOURCE/TARGET",{},function(d){console.log(d)})
-      -->
-    </div>
-
-</div>
-
-    
 
 <script>
 //list backward and forward item
 
 function getDependencies(eventid){
-    get(`/api/v1/cases/event/${eventid}/forward`,function(d){
-        console.log("foward")
-        console.log(d)
-        
-        get(`/api/v1/cases/event/${eventid}/pforward`,function(d2){
-            list_nodes("next", d, d2)
-        })
 
-
-
-    })
+    if (!isNaN(eventID)){
+      get(`/api/v1/cases/event/${eventid}/forward`,function(d){
+          console.log("foward")
+          console.log(d)
+          
+          get(`/api/v1/cases/event/${eventid}/pforward`,function(d2){
+              list_nodes("next", d, d2)
+          })
+      })
+      
+      get(`/api/v1/cases/event/${eventid}/backward`,function(d){
+          console.log("back")
+          console.log(d)
+          
+          get(`/api/v1/cases/event/${eventid}/pbackward`,function(d2){
+              list_nodes("previous", d, d2)
+          })
+      })
+    }else{
+      //clear prompts
+      list_nodes("next", [], [])
+      
+      //here assuming the id is a template Event
+      //find the edge in graph linked to the template
+      //
+      var innodes = []
+      var inedge = _.find(ctl.data.edges,{endNodeId: eventID})
+      if (inedge){
+        var innode = _.find(ctl.data.nodes,{id: inedge.startNodeId})
+        if (innode){
+          innodes.push({"event":{"identity":{"low":innode.id,"high":0},"properties":{"Label":innode.properties.Label}}})
+        }
+      }
+      console.log(innodes);
+      list_nodes("previous", innodes, []) //[{"event":{"identity":{"low":10,"high":0},"properties":{"Label":label}]
+    }
     
-    get(`/api/v1/cases/event/${eventid}/backward`,function(d){
-        console.log("back")
-        console.log(d)
-        
-        get(`/api/v1/cases/event/${eventid}/pbackward`,function(d2){
-            list_nodes("previous", d, d2)
-        })
-    })
 }
 function list_nodes(domid, data, potentials){
     var htmlStr = "";
     
-    if (!isNaN(eventID)){
+    //if (!isNaN(eventID)){
         for (var i in data){
             var eid = toNumber(data[i]['event']['identity']);
             var elabel = data[i]['event']['properties']['Label'];
@@ -531,13 +796,26 @@ function list_nodes(domid, data, potentials){
             //item_clicked(d)
             htmlStr += elabel;
             htmlStr += "</button>";
-            htmlStr += ` <button onclick="alert('Todo: remove link')" class="delBtn">X</button>`;
+            
+            //if domid is previous then rmlink(previousID,eventID)
+            if (domid == "previous"){
+            htmlStr += ` <button onclick="rm_link(${eid},${eventID})" class="delBtn">X</button>`;}
+            else{
+            htmlStr += ` <button onclick="rm_link(${eventID},${eid})" class="delBtn">X</button>`;
+            }
             htmlStr += "<br>";
         }
         
+    if (!htmlStr){
+        htmlStr += "None on record<br>"
+    }   
+        
         if (potentials.length){
             console.log(potentials);
-            htmlStr += "<br>potential +<br>";
+            var dir = "from";
+            if (domid == "next"){ dir = "to"}
+            
+            htmlStr += `<br>create link ${dir}:<br>`;
             htmlStr += `<select id="${domid}pos" onchange="select_add_link('${domid}')">`;
             htmlStr += `<option value="default">${potentials.length} event(s)</option>`;
             for (var i in potentials){
@@ -548,15 +826,14 @@ function list_nodes(domid, data, potentials){
             htmlStr += "</select>";
 
         }
-    }
+    //}
     
-    if (!htmlStr){
-        htmlStr = "None on record"
-    }   
+
     $("#"+domid).html(htmlStr);
 }
 function depend_item_clicked(id){
    var d = _.find(ctl.data.nodes, {id:id});
+   ctl.set_active(id)
    item_clicked(d);
 }
 function select_add_link(domid){
@@ -600,14 +877,7 @@ function select_add_link(domid){
 
 </script>
 
-<div class="flexitem depends">
-    <h5>&gt; Directly enables</h5>
-    <div id="next">
 
-    </div>
-</div>
-
-</div>
     
 <br>
 <br>
@@ -635,7 +905,7 @@ function delete_event_record(){
         delete_event(eventID);
         
         //hide manage event
-        $("#manage_event").html("Select an item in the timeline to add or edit");
+        $("#manage_event").html("Select an item in the timeline to edit");
         $(".manage_event_btn").hide();
     } 
     
@@ -647,6 +917,18 @@ function delete_event(id){
         jqxhr = del(url,{},function(d){get_timeline_data(0);console.log(d)});
     }
 }
+
+function rm_link(source,target){
+    del(`/api/v1/cases/eventevent/${source}/${target}`,{},function(d){
+      console.log(d)
+      //refresh
+      getDependencies(eventID);
+      //ctl.update();
+      get_timeline_data();
+    })
+}
+
+
 </script>
 
 </body>

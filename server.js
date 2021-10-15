@@ -71,17 +71,76 @@ server.get(`/overview`, (req, res) => {
 });
 
 server.get(`/view/case/:caseID`, (req, res)=> {
+
+
+    //note: this needs to be tidied up
+
     if (req.query.role == 'ADMIN') //note: passing query string means that it can be inserted by user in the url bar, use with caution
     { 
     
       //load some presets from json files
       let EventLabels = fs.readFileSync('./presets/EventLabels.json');
-    
+      let Wards = fs.readFileSync('./presets/Wards.json');
+      let Templates = fs.readFileSync('./presets/Templates.json');
+      
+      let session = driver.session()
+      
+      q2 = `
+      MATCH (c:Case)
+      WHERE c.caseID  STARTS WITH "template"
+      return distinct c.caseID as caseID
+      `;
+      session.run(q2) 
+        .then(result => {
+          session.close();
+          //res.json(result.records)
+          DBlist = []
+          //return records as List[]
+          result.records.forEach(function(record){
+              //console.log(record._fields[0])
+              //let tmp ={}
+              for (var i =0; i < record.length; i++){
+                 //tmp[record.keys[i]] = record._fields[i]
+                DBlist.push(record._fields[i])
+              }
+              //add post-process here -e.g. if it is an integer we can process it here  
+              //DBlist.push(tmp)
+          })
+          //res.json(result.records)
+          console.log("DBlist",DBlist);
+          
+          res.render("case_admin", { 
+                                  'user': req.query.user,'role': req.query.role,
+                                  caseID: req.params.caseID, 
+                                  EventLabels:JSON.parse(EventLabels),
+                                  Wards:JSON.parse(Wards),
+                                  Template:DBlist
+                              }); //under views/case_editor.ejs
+        })
+        .catch(error => {
+          session.close();
+          console.log("error",error)
+          res.render("case_admin", { 
+                                  'user': req.query.user,'role': req.query.role,
+                                  caseID: req.params.caseID, 
+                                  EventLabels:JSON.parse(EventLabels),
+                                  Wards:JSON.parse(Wards),
+                                  Template:JSON.parse(Templates)
+                              }); //under views/case_editor.ejs
+        })
+        
+        /*
       res.render("case_admin", { 
                                     'user': req.query.user,'role': req.query.role,
                                     caseID: req.params.caseID , 
-                                    EventLabels:JSON.parse(EventLabels)
+                                    EventLabels:JSON.parse(EventLabels),
+                                    Wards:JSON.parse(Wards),
+                                    Template:JSON.parse(Templates)
                                }); //under views/case_admin.ejs
+        */      
+                               
+                               
+                               
     }
     else if (req.query.role == 'EDITOR')
     {
@@ -94,37 +153,78 @@ server.get(`/view/case/:caseID`, (req, res)=> {
         session.run(q) 
         .then(result => {
           //console.log(result)
-          session.close();
+          
           
           if (result.records[0]._fields[0] == 0){
               //view only
               //res.send({"todo":"view only"})
               
               res.render("case_viewer", {  'user': req.query.user,'role': req.query.role, caseID: req.params.caseID }); //under views/case_editor.ejs
-              
+              session.close();
           }
           else{
-          //load some presets from json files
-          let EventLabels = fs.readFileSync('./presets/EventLabels.json');
-          let Wards = fs.readFileSync('./presets/Wards.json');
-
-          //console.log(JSON.stringify(JSON.parse(rawdata)))
-          res.render("case_editor", { 
+            
+            //////////////////////////////
+            //load some presets from json files
+            let EventLabels = fs.readFileSync('./presets/EventLabels.json');
+            let Wards = fs.readFileSync('./presets/Wards.json');
+            let Templates = fs.readFileSync('./presets/Templates.json');
+            
+            q2 = `
+            MATCH (c:Case)
+            WHERE c.caseID  STARTS WITH "template"
+            return distinct c.caseID as caseID
+            `;
+            session.run(q2) 
+              .then(result => {
+                session.close();
+                //res.json(result.records)
+                DBlist = []
+                //return records as List[]
+                result.records.forEach(function(record){
+                    //console.log(record._fields[0])
+                    //let tmp ={}
+                    for (var i =0; i < record.length; i++){
+                       //tmp[record.keys[i]] = record._fields[i]
+                      DBlist.push(record._fields[i])
+                    }
+                    //add post-process here -e.g. if it is an integer we can process it here  
+                    //DBlist.push(tmp)
+                })
+                //res.json(result.records)
+                console.log("DBlist",DBlist);
+                
+                res.render("case_editor", { 
                                         'user': req.query.user,'role': req.query.role,
                                         caseID: req.params.caseID, 
                                         EventLabels:JSON.parse(EventLabels),
-                                        Wards:JSON.parse(Wards)
+                                        Wards:JSON.parse(Wards),
+                                        Template:DBlist
                                     }); //under views/case_editor.ejs
+              })
+              .catch(error => {
+                session.close();
+                console.log("error",error)
+                res.render("case_editor", { 
+                                        'user': req.query.user,'role': req.query.role,
+                                        caseID: req.params.caseID, 
+                                        EventLabels:JSON.parse(EventLabels),
+                                        Wards:JSON.parse(Wards),
+                                        Template:JSON.parse(Templates)
+                                    }); //under views/case_editor.ejs
+              })
+            
+ 
+                                    
+                                    
+            //////////////////////////////
           }
         })
         .catch(error => {
           session.close();
           res.send(error)
         })
-        
-
-              
-                                  
+               
     }
     else{ 
       res.send("Please login to proceed");

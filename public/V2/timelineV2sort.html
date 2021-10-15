@@ -8,8 +8,7 @@
 <title>NetworkTimeline</title>
 
 <script src="/V2/js/d3.v4.min.js"></script>
-<!--<script src="/V2/js/jquery.min.js"></script>--> 
-<!--note here cause issues if included with autocomplete using jqueryui under admin-->
+<script src="/V2/js/jquery.min.js"></script>
 <script src="/V2/js/underscore-min.js"></script>
 <script src="/V2/js/Math.uuid.js"></script>
 
@@ -117,10 +116,7 @@ rect.template{
   stroke-dasharray: 5;
   opacity:0.5;
 }
-rect.active{
-    stroke:#000;
-    stroke-width:5px;
-}
+
 .error{
   fill: #888 ;
   stroke-dasharray: 5;
@@ -136,7 +132,7 @@ rect.active{
 }
 /*---------------d3 responsive---------------*/
 #container{
-  height:400px;
+  height:350px;
   overflow: hidden;
   background: #eee;
   /*border:1px dashed #000;*/
@@ -184,7 +180,7 @@ var NetworkTimeline = function(containerid, data){
        
     thisGraph.div =  d3.select(".tooltip");
     
-    thisGraph.margin = {top: 60, right: 0, bottom: 60, left: 0};
+    thisGraph.margin = {top: 60, right: 0, bottom: 0, left: 0};
     //thisGraph.width = thisGraph.svgWidth - thisGraph.margin.left - thisGraph.margin.right;
     //thisGraph.height = thisGraph.svgHeight - thisGraph.margin.top - thisGraph.margin.bottom;
            
@@ -221,20 +217,17 @@ var NetworkTimeline = function(containerid, data){
     thisGraph.scaleX = thisGraph.x;
     thisGraph.currentTransform = d3.zoomTransform(thisGraph.svg);
     
-    thisGraph.chart = thisGraph.svg.append("g").attr("class", "chart")
-    
-    /*
     thisGraph.transform = d3.zoomIdentity
         .translate(0,0)
         .scale(1)
         .translate(0,0);
-    */
+    
     
     thisGraph.zoom = d3.zoom()
             .extent([[0, 0], [thisGraph.svgWidth, thisGraph.svgHeight]])
             .scaleExtent([0.1, 50])
             //.translateExtent([[-thisGraph.width*10, -thisGraph.height*20], [thisGraph.width*10, thisGraph.height*20]])
-            //.translateExtent([[-5000, 0], [5000, 0]])
+            .translateExtent([[-5000, 0], [5000, 0]])
             .on("zoom",zoomed)
             //.on("wheel.zoom", wheeled)
             
@@ -244,7 +237,7 @@ var NetworkTimeline = function(containerid, data){
     //thisGraph.svg.call(thisGraph.zoom.transform, thisGraph.transform);
     
     function zoomed() {
-        console.log("zoomed/pan");
+        console.log("zoomed");
         //issue: on mobile devices, sometimes panning triggers zoom (chanes in transform.k) when abs(x) or abs(y)is large
         
         //console.log(d3.event.transform);
@@ -273,8 +266,6 @@ var NetworkTimeline = function(containerid, data){
         ///*
         if (thisGraph.data.nodes.length > 0){
             thisGraph.scaleX = d3.event.transform.rescaleX(thisGraph.x);
-            //thisGraph.chart.attr("transform", "translate("+0+"," + d3.event.transform.y + ")") 
-            
             thisGraph.currentTransform = d3.event.transform;
             thisGraph.redraw();
         }
@@ -326,20 +317,6 @@ NetworkTimeline.prototype.make_x_gridlines = function() {
 }
 */
 
-
-NetworkTimeline.prototype.adjust_height = function() { 
-    //fit height to data
-
-    var thisGraph = this; 
-    var maxY = d3.max(thisGraph.data.nodes, function(d){return d.draw.y})
-    var adjust = maxY + thisGraph.margin.top + thisGraph.margin.bottom;
-    
-    $(thisGraph.containerid).parent().parent().height(adjust);
-    $(thisGraph.containerid).height(adjust);
-    thisGraph.set_size();
-    thisGraph.redraw_axis()
-}
-
 NetworkTimeline.prototype.set_size = function() {
     var thisGraph = this;
     //reset sizes
@@ -350,19 +327,9 @@ NetworkTimeline.prototype.set_size = function() {
     thisGraph.svg.attr("preserveAspectRatio", "xMinYMin meet")
        .attr("viewBox", "0 0 "+thisGraph.svgWidth+" "+thisGraph.svgHeight)
        .classed("svg-content-responsive", true)
+       
+    
 }
-
-NetworkTimeline.prototype.set_active = function(id) {
-    var thisGraph = this;
-    d3.selectAll(".item").classed("active", false);
-    d3.select("#node-"+id).classed("active", true);
-}
-
-NetworkTimeline.prototype.clear_active = function(id) {
-    var thisGraph = this;
-    d3.selectAll(".item").classed("active", false);
-}
-
 NetworkTimeline.prototype.resized = function() {
     console.log("resized")
     var thisGraph = this;
@@ -375,9 +342,6 @@ NetworkTimeline.prototype.resized = function() {
     
     thisGraph.scaleX = thisGraph.currentTransform.rescaleX(thisGraph.x)
     thisGraph.xaxisGroup.call(thisGraph.xAxis.scale(thisGraph.scaleX))
-    
-    //thisGraph.chart.attr("transform", "translate("+0+"," + thisGraph.currentTransform.y + ")") 
-            
     
     thisGraph.zoom.extent([[0, 0], [thisGraph.svgWidth, thisGraph.svgHeight]])
     
@@ -396,27 +360,14 @@ NetworkTimeline.prototype.setTransform = function(transform) {
     thisGraph.redraw();
 }
 
-
-
-
-
 // Create Event Handlers for mouse
-
 NetworkTimeline.prototype.handleItemClick = function(d, i) { 
     console.log(d);
-    
-    //set active class, note it disapper on redraw
-    d3.selectAll(".item").classed("active", false);
-    d3.select("#node-"+d.id).classed("active", true);
-    
-
-    
-    /////// for use in host context
     try{
         item_clicked(d); //
     }
     catch(e){ 
-        console.warn(e); 
+        //console.warn(e); 
         console.warn("item_clicked(d) for handleItemClick not found");
     }
 }
@@ -435,8 +386,9 @@ NetworkTimeline.prototype.handleItemMouseOver = function(d, i) {
       .duration(200)		
       .style("opacity", .9);		
       
+      
     //tooltip text
-    tooltipObj.html(`<div>click to edit<br> ${d.properties.Label}<br> (${d.id})</div>`)	//d.draw.status.toUpperCase()
+    tooltipObj.html(`<div>click to edit<br> ${d.id}</div>`)	//d.draw.status.toUpperCase()
       .style("left", function(d){
         //if (d3.event.pageX > window.innerWidth-obj.width+10){
         if (posX > window.innerWidth-obj.width+10){
@@ -469,29 +421,23 @@ NetworkTimeline.prototype.update = function() {
     //update the document with data
     
     //update nodes rect
-    nodeSelect = thisGraph.chart.selectAll(".item").data(thisGraph.data.nodes, function(d){ return d.id;});
+    nodeSelect = thisGraph.svg.selectAll(".item").data(thisGraph.data.nodes, function(d){ return d.id;});
     nodeEnter = nodeSelect.enter().append("rect").classed("item",true)
-                 .attr("id",function(d){ return "node-"+d.id;})
                 .on("click", thisGraph.handleItemClick)
                 .on("mouseover", thisGraph.handleItemMouseOver)
                 .on("mouseout", thisGraph.handleItemMouseOut)
-               
     nodeSelect.exit().remove();
 
     //update nodes label
-    labelSelect = thisGraph.chart.selectAll(".labels").data(thisGraph.data.nodes, function(d){ return d.id;});
+    labelSelect = thisGraph.svg.selectAll(".labels").data(thisGraph.data.nodes, function(d){ return d.id;});
     labelEnter = labelSelect.enter().append("text")
                                     .classed("labels",true)
                                     .attr("text-anchor","start")
                                     .attr("alignment-baseline","middle")
-                                    /*
-                                    .text(function(d){ 
-                                        return d.properties.Label; // + " lv:"+ d.draw.level;
-                                    })*/
     labelSelect.exit().remove();
     
     //update edges path-links
-    edgeSelect = thisGraph.chart.selectAll(".links").data(thisGraph.data.edges, function(d){ return d.id;});
+    edgeSelect = thisGraph.svg.selectAll(".links").data(thisGraph.data.edges, function(d){ return d.id;});
     edgeEnter = edgeSelect.enter().append("path").classed("links",true)
                                     .attr("fill", "none")
                                     .attr('marker-end', 'url(#end-arrow)')
@@ -502,11 +448,109 @@ NetworkTimeline.prototype.update = function() {
     
     //Redraw all elements (including updates of attributes where new data might have same id as old data)
     thisGraph.redraw();
-    
-    //adjust height
-    thisGraph.adjust_height();
-    
 }
+ 
+ NetworkTimeline.prototype.topo_group = function() {
+ // function topo_group(data){
+    //topo_group(timelinedata)
+    var thisGraph = this;
+    var data = thisGraph.data;
+    var tmp_nodes = data.nodes.slice();
+    var tmp_edges = data.edges.slice();
+    
+    tmp_edges = _.filter(tmp_edges, function(d){ return d.draw.type != "loop";}); // remove any edges marked as "loop"
+    
+    var node_groups = []
+    
+    for ( var i = 0; i < 50; i++){
+        // repeat below until a stopping criteria 
+        
+        //find all start nodes
+        var start_nodes = _.filter(tmp_nodes, function (d) {
+            //return !_.find(tmp_edges, {target:d.id})
+            return !_.find(tmp_edges, {endNodeId:d.id})
+            //!_.find(chart.data.edges, {target:1})
+        });
+        console.log(start_nodes)
+        
+        //exclude start_nodes from tmp_nodes
+        tmp_nodes = _.difference(tmp_nodes, start_nodes);
+        
+        //exclude edges with start_nodes as source
+        //console.log(start_nodes);
+        if (start_nodes.length){
+        
+            node_groups.push(start_nodes);
+            
+            tmp_edges = _.filter(tmp_edges, function (d){
+                return !_.find(start_nodes, {id:d.startNodeId})
+            })
+            
+        }else{
+            break;
+        }
+    }
+    
+    console.log(tmp_edges);
+    console.log(node_groups);
+    thisGraph.group(node_groups)
+    
+    return node_groups;
+}
+ NetworkTimeline.prototype.group = function(node_groups) {
+     var thisGraph = this;
+     
+     //setup the Y value for each node
+     for (var i in node_groups){
+         var tmp_group = node_groups[i];
+         
+        //////////////
+        
+        tmp_group = _.sortBy(node_groups[i], function(d){
+            try{
+                if (d.draw.startdate){
+                    //console.log(d.draw.startdate)
+                    return d.draw.startdate;
+                }else{
+                    return 0;
+                }
+            }catch(e){
+                console.log(e)
+                return 0;
+                }
+        })
+         console.log(tmp_group)
+         
+         yPos = 0;
+          for (var ii = 0; ii<tmp_group.length; ii++){
+            tmp_group[ii].draw.level = i;
+            //compute the average y value?
+            var source_ids = _.filter(thisGraph.data.edges, {endNodeId:tmp_group[ii].id}).map(edge => edge.startNodeId);
+            console.log(source_ids)
+            
+            if (source_ids.length == 0){
+                tmp_group[ii].draw.y = ii * thisGraph.spacing.y + 150; //todo: sort Y by similarity in terms of out edges target node
+            }
+            else{
+                test = source_ids.map(idx => _.find(thisGraph.data.nodes,{id:idx}).draw.y)
+                //console.log(test);
+                sum = test.reduce((a, b) => a + b, 0)
+                avg = (sum / test.length) || 0;
+                
+                if (Math.abs(avg-yPos) < thisGraph.spacing.y){
+                     tmp_group[ii].draw.y = yPos + thisGraph.spacing.y; 
+                }else{
+                    tmp_group[ii].draw.y = avg;
+                }
+                
+                yPos = tmp_group[ii].draw.y
+            }
+          }
+         
+     }
+     
+ }
+
 
  
 NetworkTimeline.prototype.redraw = function() {
@@ -517,7 +561,7 @@ NetworkTimeline.prototype.redraw = function() {
     //update existing items
     
     //Redraw rectangles
-    thisGraph.chart.selectAll(".item")
+    thisGraph.svg.selectAll(".item")
         .sort((a,b) => d3.descending (a.draw.enddate-a.draw.startdate, b.draw.enddate-b.draw.startdate)) //draw big ones first
         //drawing order: sort the rectangles in the z-axis (smaller units gets hidden behind, limitations where a lot so small units overlaps a big one)
  
@@ -529,7 +573,7 @@ NetworkTimeline.prototype.redraw = function() {
         })
         //.attr("y", thisGraph.margin.top)
         .attr("y", function(d){ 
-            //d.draw.y = 120;
+            //d.draw.y = 150;
             return d.draw.y;
         })
         .attr("height", 50)
@@ -551,19 +595,13 @@ NetworkTimeline.prototype.redraw = function() {
         })
         .attr("rx", 20)
         .attr("ry", 20)
-        //.attr("class", function (d){ 
-        //    return "item "+d.draw.status;
-        //})
+        .attr("class", function (d){ 
         
-        //.classed(function(d){return d.draw.status},true)
+            return "item "+d.draw.status;
         
-        .classed("completed",function(d){ return d.draw.status == "completed";})
-        .classed("planned",function(d){ return d.draw.status == "planned";})
-        .classed("overdue",function(d){ return d.draw.status == "overdue";})
-        .classed("ongoing",function(d){ return d.draw.status == "ongoing";})
-        .classed("error",function(d){ return d.draw.status == "error";})
-        .classed("template",function(d){ return d.draw.status == "template";})
-
+        })
+        
+    
     //Redraw links
     thisGraph.svg.selectAll(".links")
         .attr("d", function(d){
@@ -640,7 +678,7 @@ NetworkTimeline.prototype.redraw = function() {
     
     
     //Redraw text
-    thisGraph.chart.selectAll(".labels")
+    thisGraph.svg.selectAll(".labels")
 			.attr("x", 
 				function(d){
 					return d.draw.startX;
@@ -649,29 +687,22 @@ NetworkTimeline.prototype.redraw = function() {
 				function(d){
 					return d.draw.y+60;
 				})
-                
-                
-            .text(function(d){ 
-                return d.properties.Label; // + " lv:"+ d.draw.level;
-            }) //not ideal but force redraw when label changes
-            
-            
-            /*
-            //issue with computedtextlength here
+                /*
             .classed("hidden", function(d){
-                //console.log((d.draw.endX-d.draw.startX) + " " +this.getComputedTextLength());
-                if ((d.draw.endX-d.draw.startX) >= this.getComputedTextLength()){
+                console.log((d.draw.endX-d.draw.startX) + " " +this.getComputedTextLength());
+                if ((d.draw.endX-d.draw.startX) > this.getComputedTextLength()){
                     return false;
                 }  
                 else{
                     return true;
                 }
             })
-            */
-                
-			
+                */
+			.text(function(d){ 
+                return d.properties.Label; // + " lv:"+ d.draw.level;
+
+            }) //not ideal but force redraw when label changes
 			//.text(function(d){ return d.id + "-" + d.properties.Label;}) //not ideal but force redraw when label changes
-            
     
     //redraw line now
     today = thisGraph.scaleX(new Date().getTime());  //use 1622826495381 for test
@@ -679,30 +710,17 @@ NetworkTimeline.prototype.redraw = function() {
     if (!isNaN(today)){
         thisGraph.svg.selectAll("line.now ")
             .attr("x1", today)
-            //.attr("y1", thisGraph.margin.top)
+            .attr("y1", thisGraph.margin.top)
             .attr("x2", today)
-            //.attr("y2", thisGraph.svgHeight-25)
+            .attr("y2", thisGraph.svgHeight-25)
             
         thisGraph.svg.selectAll("text.now ") 
             .attr("x", today)
-            //.attr("y", thisGraph.svgHeight-25)
     }
     
 }//end update
-
 NetworkTimeline.prototype.redraw_axis = function() {
     var thisGraph = this;
-    
-    //deal with adjust_height
-    thisGraph.xAxis.tickSize(-thisGraph.svgHeight);
-    
-    thisGraph.svg.selectAll("line.now ")
-        .attr("y1", thisGraph.margin.top)
-        .attr("y2", thisGraph.svgHeight-25)
-    thisGraph.svg.selectAll("text.now ") 
-        .attr("y", thisGraph.svgHeight-25)
-    
-    
     //LOD on the axis (note issue on mobile
     var day_to_pixel = thisGraph.scaleX(86400000)-thisGraph.scaleX(0) // 1 day in pixels
     var week_to_pixel = day_to_pixel*7 // 7 days in pixels
@@ -779,11 +797,8 @@ NetworkTimeline.prototype.view_extent = function() {
         //thisGraph.xAxis = d3.axisTop(thisGraph.scaleX);
         
         
-
         thisGraph.svg.call(thisGraph.zoom.transform, d3.zoomIdentity); // resets zoom/pan transform
         thisGraph.redraw_axis()
-        
-        
     }
     
 }
@@ -799,24 +814,6 @@ NetworkTimeline.prototype.view_today_extent = function() {
     
     thisGraph.redraw_axis()
 }
-
-NetworkTimeline.prototype.zoom_to_item = function(id) {
-    var thisGraph = this;
-    
-    var d = thisGraph.find_by_id(thisGraph.data.nodes,id);
-    if(d){
-    
-        var start = d.draw.startdate.getTime();
-        var end = d.draw.enddate.getTime();
-        offset = 86400000*14 ; // +/- 14 days, 86400000* n days
-        thisGraph.x.domain([start-offset,end+offset]) 
-
-        thisGraph.svg.call(thisGraph.zoom.transform, d3.zoomIdentity); // resets zoom/pan transform
-        
-        thisGraph.redraw_axis()
-    }
-}
-
 NetworkTimeline.prototype.find_by_id = function(arr,id){
   return _.find(arr,function(d){ return d.id == id;});
 }
@@ -827,7 +824,7 @@ NetworkTimeline.prototype.find_by_id = function(arr,id){
 
 <div id="container" >
     <div class="svg-container">
-        <svg id="mainsvg" width="100%" height="400px">
+        <svg id="mainsvg" width="100%" height="350px">
          <!-- simple dot marker definition -->
         <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" markerUnits="userSpaceOnUse">          
         <circle cx="5" cy="5" r="5" fill="#000000" />
@@ -998,8 +995,6 @@ function process_data(data){
         console.warn(error_nodes);
     }
     
-    process_overlap(output)
-    
     return output;
 }
 
@@ -1024,8 +1019,6 @@ function parse_template_node(endnode,data,i){
     duration = (get_date_from_str(data.eventCompletedDate) - get_date_from_str(data.eventStartDate))/86400000
     eventDueDate = addDays(endnode.draw.enddate, duration)
     eventStartDate = endnode.draw.enddate
-    endY = endnode.draw.y
-    
     tmpid = Math.uuid()
     next_potential_event = { 
         node:
@@ -1041,8 +1034,7 @@ function parse_template_node(endnode,data,i){
             "draw":{
                 "startdate":eventStartDate, 
                 "enddate":eventDueDate,
-                "status":"template",
-                "y":endY
+                "status":"template"
             }
         },
         edge:
@@ -1057,8 +1049,6 @@ function parse_template_node(endnode,data,i){
 }
 
 function add_from_template(data,templatecase){
-
-    $("#potential_add_from_template").html("");
     /*
         caseID: templateA
         event Label: 
@@ -1072,8 +1062,6 @@ function add_from_template(data,templatecase){
     var endnodes = find_end_nodes(data);
     //var templatecase = "templateA";
     
-    var promiseslist = []
-    
     for (var i in endnodes){
         endnode = endnodes[i];
         console.log("endnode")
@@ -1084,18 +1072,16 @@ function add_from_template(data,templatecase){
         if (endnode.draw.startdate <= endnode.draw.enddate){
             eventLabel = endnode.properties.Label;
             //search in template for the next potential node
-            //async_post(`/api/v1/cases/getnextevent/${templatecase}`, {Label:eventLabel}, function(d){
-            var test = promise_post(`/api/v1/cases/getnextevent/${templatecase}`, {Label:eventLabel}, function(d){})
-              
-              /*
-                console.log("promise callback");
-                console.log("endnode", endnode);
-                console.log("result", d);
-  
+            async_post(`/api/v1/cases/getnextevent/${templatecase}`, {Label:eventLabel}, function(d){
+         
+                console.log(endnode);
                 if(d.prev && d.next){
-                    console.log(d);
+                    //console.log(d);
                     template_addition = parse_template_node(endnode,d.next,i)
+                    
+                    
                 }else{
+                
                     ph = {
                         Label: "Placeholder",
                         eventCompletedDate: "2021-07-08",
@@ -1103,78 +1089,19 @@ function add_from_template(data,templatecase){
                     }
                     template_addition = parse_template_node(endnode,ph,i)
                 }
-                data.nodes.push(template_addition.node)
-                data.edges.push(template_addition.edge)
-              */
-           
-            promiseslist.push(test)
-            console.log(test)
-        }
-    }
-    
-    Promise.all(promiseslist).then((values) => {
-        
-        console.log(values);
-        
-        
-        var suggestions = []
-              
-        for (var i in endnodes){
-            var endnode = endnodes[i]
-            var d = values[i]
-            
-            if(d.prev && d.next){
-                console.log(d);
-                template_addition = parse_template_node(endnode,d.next,i)
                 
                 data.nodes.push(template_addition.node)
                 data.edges.push(template_addition.edge)
-                suggestions.push(template_addition.node)
-            }
-            
-            /*else{
-                ph = {
-                    Label: "Placeholder",
-                    eventCompletedDate: "2021-07-08",
-                    eventStartDate: "2021-07-01"
-                }
-                template_addition = parse_template_node(endnode,ph,i)
-            }
-            */
-
+            })
         }
         
-
         
+        //ctl.update()
+        //ctl.view_extent()
         
-        if (!suggestions.length){
-            console.warn("no suggestions returned reload may be required")
-            console.warn("templatecase", templatecase)
-            console.warn("endnodes", endnodes)
-            ctl.update();
-        }
-        else{
-            //need to resolve this ones and build it into the prototype
-            process_overlap(ctl.data); 
-            ctl.update();
-            
-            /////////////////////// list it in another context
-            var htmlStr = "";
-            console.log("suggestions",suggestions)
-            
-            for (var i in suggestions){
-                var node = suggestions[i];
-                var jsonstr = escape(JSON.stringify(node));
-                htmlStr += `<button onclick="add_new_event_str('${jsonstr}')" class="template">${node.properties.Label}</button>`
-            }
-            $("#potential_add_from_template").html(htmlStr)
-            
-            /////////////////////////
-        }
-        
-    })
+    }
     
-    //return promiseslist;
+    
 }
 
 
@@ -1327,8 +1254,7 @@ placeholder = {
             {
                 "startdate": addDays(today,0), //get_date_from_str("2020-12-01"), 
                 "enddate": addDays(today,10),
-                "status":"template",
-                "y":120
+                "status":"template"
             }
         }
         ],
@@ -1338,112 +1264,63 @@ placeholder = {
 
 
 
-var ctl = new NetworkTimeline("#mainsvg",placeholder);
+//var ctl = new NetworkTimeline("#mainsvg",placeholder);
 
+timelinedata = process_data(timelinedata)
+check_edges(timelinedata)
+//topo_group(timelinedata)
 
-
-
-
-
-function process_overlap(data){
-    check_edges(data)
-    //set draw.y
-    for (var i in data.nodes){
-        data.nodes[i].draw.y = 120;
-    }
-
-    //deal with overlaps
-    function isoverlap(nodeA,nodeB){
-        startA = nodeA.draw.startdate.getTime()
-        endA = nodeA.draw.enddate.getTime()
-        startB = nodeB.draw.startdate.getTime()
-        endB = nodeB.draw.enddate.getTime()
-        
-        if(startB < startA) {
-            return endB >= startA;
-        }
-        else {
-            return startB < endA;
-        }
-    }
-    //isoverlap(ctl.data.nodes[9],ctl.data.nodes[10]) //true
-    //isoverlap(ctl.data.nodes[7],ctl.data.nodes[4]) //false touching
-    //isoverlap(ctl.data.nodes[8],ctl.data.nodes[4]) //false not touching
-
-    var tmp_group = _.sortBy(data.nodes, function(d){
-        var sortscore = 0
-        // use startdate (need to be normalised)
-        try{
-            if (d.draw.startdate){
-                //console.log(d.draw.startdate)
-                sortscore = d.draw.startdate;
-                //return d.draw.startdate;
-            }
-        }catch(e){
-            console.log(e)
-            
-        }
-        return sortscore;
-    })
-
-    //shortest list
-    
-    for (var iter = 0; iter < 2; iter++){ //run it a few times to remove overlaps
-        for (var i = 0; i < tmp_group.length; i++){
-            for (var ii = 0; ii < tmp_group.length; ii++){
-                if (i < ii){
-                    var overlap = isoverlap(tmp_group[i],tmp_group[ii]);
-                    if (overlap){
-                        //console.log(i,tmp_group[i].id,ii,tmp_group[ii].id,overlap)
-                        
-                        if ( tmp_group[ii].draw.y == tmp_group[i].draw.y){ //move if it is in the same line, can be more compact but may result in some overlapped items
-                            tmp_group[ii].draw.y = tmp_group[i].draw.y + 75;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    //use a queue, find all overlapped item, move until no overlap X
-    /*
-    var queue = [] //tmp_group.slice()
-    for (var i = 0; i < tmp_group.length; i++){
-        for (var ii = 0; ii < tmp_group.length; ii++){
-            if (i < ii){
-                var overlap = isoverlap(tmp_group[i],tmp_group[ii]);
-                if (overlap){
-                    queue.push(tmp_group[i]);
-                }
-            }
-        }
-    }
-    var safety = 0
-    while (queue.length){
-        var current = queue.shift()
-        safety +=1
-        if (safety > 100) {
-            console.warn("break");
-            break;
-        }
-        current.draw.y += 75;
-        for (var ii = 0; ii < tmp_group.length; ii++){
-            var overlap = isoverlap(current,tmp_group[ii]);
-            if (overlap){
-                if ( tmp_group[ii].draw.y == current.draw.y){
-                    queue.push(current);
-                }
-                continue;
-            }
-        }
-    }
-    */
-    
+//set draw.y
+for (var i in timelinedata.nodes){
+    timelinedata.nodes[i].draw.y = 150;
 }
 
-//timelinedata = process_data(timelinedata)
-//topo_group(timelinedata)
-//var ctl = new NetworkTimeline("#mainsvg",timelinedata);
+//deal with overlaps
+function isoverlap(nodeA,nodeB){
+    startA = nodeA.draw.startdate.getTime()
+    endA = nodeA.draw.enddate.getTime()
+    startB = nodeB.draw.startdate.getTime()
+    endB = nodeB.draw.enddate.getTime()
+    
+    if(startB < startA) {
+        return endB >= startA;
+    }
+    else {
+        return startB < endA;
+    }
+}
+//isoverlap(ctl.data.nodes[9],ctl.data.nodes[10]) //true
+//isoverlap(ctl.data.nodes[7],ctl.data.nodes[4]) //false touching
+//isoverlap(ctl.data.nodes[8],ctl.data.nodes[4]) //false not touching
+
+        var tmp_group = _.sortBy(timelinedata.nodes, function(d){
+            try{
+                if (d.draw.startdate){
+                    //console.log(d.draw.startdate)
+                    return d.draw.startdate;
+                }else{
+                    return 0;
+                }
+            }catch(e){
+                console.log(e)
+                return 0;
+                }
+        })
+
+for (var i = 0; i < tmp_group.length; i++){
+    for (var ii = 0; ii < tmp_group.length; ii++){
+        if (i < ii){
+            var overlap = isoverlap(tmp_group[i],tmp_group[ii]);
+            if (overlap){
+                console.log(i,tmp_group[i].id,ii,tmp_group[ii].id,overlap)
+                tmp_group[ii].draw.y = tmp_group[i].draw.y + 75;
+            }
+        }
+    }
+}
+
+
+var ctl = new NetworkTimeline("#mainsvg",timelinedata);
 
 //ctl.topo_group() //doesnt deal with overlap well, useful when x can be adjusted and not determined by timeline
 

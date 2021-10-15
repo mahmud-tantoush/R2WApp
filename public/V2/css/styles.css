@@ -34,7 +34,14 @@ a:hover{ color:gold}
 
 .flexcontainer{
     width:100%;
+    
+    display: -webkit-box;      /* OLD - iOS 6-, Safari 3.1-6 */
+    display: -moz-box;         /* OLD - Firefox 19- (buggy but mostly works) */
+    display: -ms-flexbox;      /* TWEENER - IE 10 */
+    display: -webkit-flex;     /* NEW - Chrome */
     display:flex;
+    
+    
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
@@ -45,10 +52,21 @@ a:hover{ color:gold}
 }
 
 .flexitem{
+  display: -webkit-box;      /* OLD - iOS 6-, Safari 3.1-6 */
+  display: -moz-box;         /* OLD - Firefox 19- (buggy but mostly works) */
+  display: -ms-flexbox;      /* TWEENER - IE 10 */
+  display: -webkit-flex;     /* NEW - Chrome */
   display:flex;
+
   flex-direction: column;
   border:0px solid blue;
 }
+
+#case_events{
+  width:100%;
+}
+
+
 
 /*------WIP--------*/
 .depends{
@@ -98,7 +116,32 @@ a:hover{ color:gold}
 }
 
 /* MOBILE */
+
+@media only screen and (min-width: 800px)  {
+  .flexcontainer{
+      /*flex-direction: row;*/
+  }
+    #manage_evt{
+      width:40%;
+      min-width:200px;
+      /*border:1px solid red;*/
+    }
+}
+@media only screen and (max-width: 800px) {
+    .flexcontainer{
+        flex-direction: row !important;
+    }
+    #manage_evt{
+      width:90%;
+      min-width:200px;
+      border:1px solid red !important;
+    }
+}
+
 @media only screen and (max-width: 600px) {
+
+
+    
     .panel2{
         width:100% !important;
     }
@@ -453,10 +496,16 @@ div[class^="mobile-"]{
 }
 
 .template{
-  border: 2px dashed #000;
+  border: 2px dashed #00000088;
+
 }
 
 .error{
   background: #88888888 ;
 }
 
+
+#potential_add_from_template button{
+  margin: 0 10px 10px 0;
+  opacity: 0.5;
+}
