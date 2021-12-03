@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>R2W case: <%= caseID; %></title>
 <!-- <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"> -->
 <link rel="stylesheet" href="/V2/css/jquery-ui.min.css">
@@ -42,6 +42,7 @@
 <script src="/V2/js/R2W.js"></script>
 <!-- <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script> -->
 <script src="/V2/js/jquery-ui.min.js"></script>
+<script src="/V2/js/underscore-min.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
@@ -169,7 +170,9 @@ function get_case_by_id(){
         $("#case_attributes_debug").html(JSON.stringify(data));
         ///////////////
         $("#case_attributes #Template").on('change', function(d){
-          get_timeline_data(0); //timeline change
+          get_timeline_data(1); //timeline change
+          $("#add_event_container").hide();
+          $("#edit_event_container").hide();
         })
         /////////////
      });
@@ -227,15 +230,15 @@ function get_timeline_data(update){
         if (tmp.nodes.length > 0){
             ctl.data = tmp;
             
-            
-            
-            //add_from_template(ctl.data,$("#template-select").val()); //experimental add templated nodes 
-            add_from_template(ctl.data,$("#Template").val()); 
-            //ctl.update();
-            
+            if ($("#Template").val()){
+              //add_from_template(ctl.data,$("#template-select").val()); //experimental add templated nodes 
+              add_from_template(ctl.data,$("#Template").val()); //experimental add templated nodes 
+            }
+            else{
+              ctl.update();
+            }
             
             if(!update){
-
                 ctl.view_extent();
             }
         }else{
@@ -413,7 +416,7 @@ function init_auto_complete(){
     ];
     */
     var availableTags = <%-  JSON.stringify(EventLabels) %>
-    console.log(availableTags)
+    //console.log(availableTags)
     $("#manage_event #Label").autocomplete({
       source: availableTags
     });
@@ -477,6 +480,11 @@ function add_event_record(){
                 prevID = "/"+prevEventId
             }
         }
+        
+        else if (!isNaN(prev_eventID)){
+          prevID = "/"+prev_eventID
+        }
+        
         xhr = post('/api/v1/cases/addevent/<%= caseID; %>'+prevID,inputs.param,function(d){
             console.log(d);
             if ("status" in d){
@@ -501,10 +509,12 @@ function add_event_record(){
 
 
 <script>
-function add_new_event_str(str){
+var prev_eventID;
+
+function add_new_event_str(str,prevID){
   try{
     var d = JSON.parse(unescape(str));
-    add_new_event(d);
+    add_new_event(d,prevID);
     
     ctl.zoom_to_item(d.id);
     ctl.set_active(d.id);
@@ -514,7 +524,7 @@ function add_new_event_str(str){
 }
 
 
-function add_new_event(d){
+function add_new_event(d,prevID){
   var today = new Date();
   today.setMinutes(0)
   today.setHours(1)
@@ -528,7 +538,7 @@ function add_new_event(d){
           }
         }
   }
-
+  prev_eventID = prevID;
   eventID = d.id;
   $("#add_event_status").html("");
 
@@ -627,7 +637,7 @@ function add_new_event(d){
 <div class="flexcontainer" id="edit_event_container" style="display:none">
 
     <div class="flexitem depends">
-        <h5>Directly depends on &lt;</h5>
+        <h5>Depends on &lt;</h5>
         <div id="previous">
 
         </div>
@@ -662,7 +672,7 @@ function add_new_event(d){
     </div>
 
            <div class="flexitem depends">
-        <h5>&gt; Directly enables</h5>
+        <h5>&gt; Enables</h5>
         <div id="next">
 
         </div>
@@ -781,6 +791,24 @@ function list_nodes(domid, data, potentials){
         }
     //}
     
+    //////////////////// add an event linked to this event
+    if (domid == "next"){
+      if (!isNaN(eventID)){
+        var node = _.find(ctl.data.nodes, {id:eventID})
+        if (node){
+          
+          var ph = {
+                        Label: "",
+                        eventStartDate: node.draw.enddate,
+                        eventCompletedDate: addDays(node.draw.enddate,7)
+                    }
+          var jsonstr = escape(JSON.stringify(parse_template_node(node,ph,0).node));
+          htmlStr += `<button onclick="add_new_event_str('${jsonstr}',${eventID})" class="template">Add next Event</button>`
+        }
+      }
+    }
+    ////////////////////
+
 
     $("#"+domid).html(htmlStr);
 }
@@ -878,7 +906,11 @@ function delete_event_record(){
 function delete_event(id){
     if (!isNaN(id)){
         var url = `/api/v1/cases/event/${id}`;
-        jqxhr = del(url,{},function(d){get_timeline_data(0);console.log(d)});
+        jqxhr = del(url,{},function(d){
+          get_timeline_data(1);
+          console.log(d);
+          $("#edit_event_container").hide();
+        });
     }
 }
 
@@ -889,7 +921,7 @@ function rm_link(source,target){
       //refresh
       getDependencies(eventID);
       //ctl.update(1);
-      get_timeline_data();
+      get_timeline_data(1);
     })
 }
 

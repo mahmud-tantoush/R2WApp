@@ -337,7 +337,7 @@ function _show_cases_summary(data){
       
       //additional columns per row of data
       tableStr += "<td>";
-      tableStr += `<button onclick="exportjson_as_file('${d.caseID}')">f</button>`;
+      tableStr += `<button onclick="exportjson('${d.caseID}')">f</button>`;
       tableStr += `<button onclick="export_as_cypher('${d.caseID}')">db</button>`;
       tableStr += `<button onclick="confirm_delete('${d.caseID}')">X</button>`;
       tableStr += "</td>";

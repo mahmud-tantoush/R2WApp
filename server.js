@@ -94,7 +94,7 @@ server.get(`/view/case/:caseID`, (req, res)=> {
         .then(result => {
           session.close();
           //res.json(result.records)
-          DBlist = []
+          DBlist = [""]
           //return records as List[]
           result.records.forEach(function(record){
               //console.log(record._fields[0])
@@ -179,7 +179,7 @@ server.get(`/view/case/:caseID`, (req, res)=> {
               .then(result => {
                 session.close();
                 //res.json(result.records)
-                DBlist = []
+                DBlist = [""]
                 //return records as List[]
                 result.records.forEach(function(record){
                     //console.log(record._fields[0])
@@ -193,7 +193,7 @@ server.get(`/view/case/:caseID`, (req, res)=> {
                 })
                 //res.json(result.records)
                 console.log("DBlist",DBlist);
-                
+                //DBlist.unshift("")
                 res.render("case_editor", { 
                                         'user': req.query.user,'role': req.query.role,
                                         caseID: req.params.caseID, 

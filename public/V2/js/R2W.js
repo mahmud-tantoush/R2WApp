@@ -376,7 +376,7 @@ $( document ).ready(function() {
 
 
 $(window).on("resize",function(e){
-  console.log("resize");
+  //console.log("resize");
   setView();
 });
 $(window).on("load",function(e){
